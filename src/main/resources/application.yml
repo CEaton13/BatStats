@@ -1,0 +1,5 @@
+Spring:
+    # enable colored output in the console for spring boot logs
+    output:
+        ansi:
+            enabled: ALWAYS
