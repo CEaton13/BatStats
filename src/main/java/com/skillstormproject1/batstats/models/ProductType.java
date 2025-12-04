@@ -1,5 +1,10 @@
 package com.skillstormproject1.batstats.models;
 
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "product_types")
 public class ProductType {
     private long id;
     private String name;
