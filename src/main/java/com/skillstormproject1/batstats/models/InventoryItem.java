@@ -26,6 +26,7 @@ public class InventoryItem {
     @Column
     private int quantity;
 
+    // productType is where the name of item is located
     @ManyToOne
     @JoinColumn(name="product_type_id")
     private ProductType productType;

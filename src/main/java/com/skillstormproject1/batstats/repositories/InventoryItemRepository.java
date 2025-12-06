@@ -1,6 +1,11 @@
 package com.skillstormproject1.batstats.repositories;
 
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.skillstormproject1.batstats.models.InventoryItem;
@@ -16,5 +21,18 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, In
      *      existsSerialNum
      *      search
      */
+
+    // find a item by the serial num
+    Optional<InventoryItem> findBySerialNumber(String serialNumber);
+
+    // check if a serial num exists
+    boolean existsBySerialNumber(String serialNumber);
+
+    // find all inventory items in a specific warehouse
+    List<InventoryItem> findByWarehouseId(int warehouseId);
+
+    // find all inventory items of a certain product type
+    List<InventoryItem> findByProductType(int productTypeId);
+
 
 }

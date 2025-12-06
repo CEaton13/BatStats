@@ -23,19 +23,19 @@ public class Warehouse {
     @Column
     private String location;
 
-    @Column
+    @Column(name="max_capacity")
     private int maxCapacity;
 
-    @Column
+    @Column(name="current_capacity")
     private int currentCapacity;
     
     @Column
     private String status;
 
-    @Column
+    @Column(name="created_at")
     private LocalDateTime createdAt;
     
-    @Column
+    @Column(name="updated_at")
     private LocalDateTime updatedAt;
 
     // Constructors
