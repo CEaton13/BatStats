@@ -1,5 +1,11 @@
-Spring:
+spring:
     # enable colored output in the console for spring boot logs
     output:
         ansi:
             enabled: ALWAYS
+
+    # configuring the postgreSQL database
+    datasource:
+        url: jdbc:postgresql://localhost:5432/Batcave
+        username: postgres
+        password: skillstorm
