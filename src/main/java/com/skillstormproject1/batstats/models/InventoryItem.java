@@ -1,21 +1,38 @@
 package com.skillstormproject1.batstats.models;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "inventory_itesm")
+@Table(name = "inventory_items")
 public class InventoryItem {
-    private long id;
+    
+    // map all of these to columns
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column
     private String serialNumber;
+
+    @Column
     private int quantity;
+
+    @Column
     private ProductType productType;
+
+    @Column
     private Warehouse warehouse;
     
+    // Constructors
     public InventoryItem() {
     }
 
-    public InventoryItem(long id, String serialNumber, int quantity, ProductType productType, Warehouse warehouse) {
+    public InventoryItem(int id, String serialNumber, int quantity, ProductType productType, Warehouse warehouse) {
         this.id = id;
         this.serialNumber = serialNumber;
         this.quantity = quantity;
@@ -23,11 +40,12 @@ public class InventoryItem {
         this.warehouse = warehouse;
     }
 
+    //Getters and Setters
     public long getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -63,6 +81,7 @@ public class InventoryItem {
         this.warehouse = warehouse;
     }
 
+    // Hashcode and Equals
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -106,6 +125,7 @@ public class InventoryItem {
         return true;
     }
 
+    // ToString
     @Override
     public String toString() {
         return "InventoryItem [id=" + id + ", serialNumber=" + serialNumber + ", quantity=" + quantity

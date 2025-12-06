@@ -1,33 +1,64 @@
 package com.skillstormproject1.batstats.models;
 
+import java.time.LocalDateTime;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "warehouses")
 public class Warehouse {
-    private long id;
+   
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column
     private String name;
+
+    @Column
     private String location;
-    private int capacity;
+
+    @Column
+    private int maxCapacity;
+
+    @Column
+    private int currentCapacity;
     
+    @Column
+    private String status;
+
+    @Column
+    private LocalDateTime createdAt;
+    
+    @Column
+    private LocalDateTime updatedAt;
+
     // Constructors
     public Warehouse() {
     }
 
-    public Warehouse(long id, String name, String location, int capacity) {
+    public Warehouse(int id, String name, String location, int maxCapacity, int currentCapacity, String status,
+            LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.location = location;
-        this.capacity = capacity;
+        this.maxCapacity = maxCapacity;
+        this.currentCapacity = currentCapacity;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
     }
-    
-    // Getters and Setters
-    public long getId() {
+
+    public int getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
@@ -47,23 +78,58 @@ public class Warehouse {
         this.location = location;
     }
 
-    public int getCapacity() {
-        return capacity;
+    public int getMaxCapacity() {
+        return maxCapacity;
     }
 
-    public void setCapacity(int capacity) {
-        this.capacity = capacity;
+    public void setMaxCapacity(int maxCapacity) {
+        this.maxCapacity = maxCapacity;
     }
 
-    // HashCode and Equals
+    public int getCurrentCapacity() {
+        return currentCapacity;
+    }
+
+    public void setCurrentCapacity(int currentCapacity) {
+        this.currentCapacity = currentCapacity;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + (int) (id ^ (id >>> 32));
+        result = prime * result + id;
         result = prime * result + ((name == null) ? 0 : name.hashCode());
         result = prime * result + ((location == null) ? 0 : location.hashCode());
-        result = prime * result + capacity;
+        result = prime * result + maxCapacity;
+        result = prime * result + currentCapacity;
+        result = prime * result + ((status == null) ? 0 : status.hashCode());
+        result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
+        result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
         return result;
     }
 
@@ -88,15 +154,34 @@ public class Warehouse {
                 return false;
         } else if (!location.equals(other.location))
             return false;
-        if (capacity != other.capacity)
+        if (maxCapacity != other.maxCapacity)
+            return false;
+        if (currentCapacity != other.currentCapacity)
+            return false;
+        if (status == null) {
+            if (other.status != null)
+                return false;
+        } else if (!status.equals(other.status))
+            return false;
+        if (createdAt == null) {
+            if (other.createdAt != null)
+                return false;
+        } else if (!createdAt.equals(other.createdAt))
+            return false;
+        if (updatedAt == null) {
+            if (other.updatedAt != null)
+                return false;
+        } else if (!updatedAt.equals(other.updatedAt))
             return false;
         return true;
     }
-    
-    // ToString
+
     @Override
     public String toString() {
-        return "Warehouse [id=" + id + ", name=" + name + ", location=" + location + ", capacity=" + capacity + "]";
-    }   
+        return "Warehouse [id=" + id + ", name=" + name + ", location=" + location + ", maxCapacity=" + maxCapacity
+                + ", currentCapacity=" + currentCapacity + ", status=" + status + ", createdAt=" + createdAt
+                + ", updatedAt=" + updatedAt + "]";
+    }
+
 
 }

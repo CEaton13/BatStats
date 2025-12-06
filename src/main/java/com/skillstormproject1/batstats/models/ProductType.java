@@ -1,21 +1,34 @@
 package com.skillstormproject1.batstats.models;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "product_types")
 public class ProductType {
-    private long id;
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Column
     private String name;
+    
+    @Column
     private String category;
+    
+    @Column(name="unit_of_measure")
     private String unit;
     
     // Constructors 
     public ProductType() {
     }
 
-    public ProductType(long id, String name, String category, String unit) {
+    public ProductType(int id, String name, String category, String unit) {
         this.id = id;
         this.name = name;
         this.category = category;
@@ -23,11 +36,11 @@ public class ProductType {
     }
 
     // Getters and Setters
-    public long getId() {
+    public int getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(int id) {
         this.id = id;
     }
 
