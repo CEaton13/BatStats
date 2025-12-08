@@ -7,7 +7,7 @@
 
     <!-- move style to style.css sheet and link -->
     <!-- how to add bootstrap???-->
-    <link rel="stylesheet" href="/frontend/style.css">
+    <link rel="stylesheet" href="/frontend/css/bootstrap.min.css">
 </head>
 <body>
     <!-- Main div container to hold and style everything -->
@@ -17,13 +17,44 @@
             <h1>BatStats Inventory System</h1>
 
             <!-- Navigation buttons to switch views -->
-             <nav>
-
-             </nav>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <nav>
+                        <button class="btn btn-primary me-md-2" type="button" onclick="showSection('dashboard')">Dashboard</button>
+                        <button class="nav-btn" onclick="showSection('warehouses')">Warehouses</button>
+                        <button class="nav-btn" onclick="showSection('inventory')">Inventory</button>
+                        <button class="nav-btn" onclick="showSection('products')">Products</button>
+                    </nav>
+                </div>
         </header>
+        
+        <main>
+            <!-- Dashboard Section -->
+            <section id="dashboard" class="content-section active">
+                <h2>Dashboard Overview</h2>
+            </section>
+                <div class="container-fluid">   
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-primary me-md-2" type="button">Button</button>
+                        <button class="btn btn-primary" type="button">Button</button>
+                    </div>
+                </div>
 
-        <p>Main container that will hold everything</p>
-        <p>Add content in here below header...</p>
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">Card Title</h5>
+                        <p class="card-text">Some quick example text.</p>
+                        <a href="#" class="btn btn-primary">Go somewhere</a>
+                    </div>
+                </div> 
+
+                <span class="badge bg-success">
+                    <i class="bi bi-check-circle"></i> Active
+                </span>
+                <span class="badge bg-danger">
+                    <i class="bi bi-x-circle"></i> Inactive
+                </span>
+        </main>
     </div>
     
 
