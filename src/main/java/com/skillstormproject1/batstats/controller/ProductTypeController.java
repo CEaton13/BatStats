@@ -2,9 +2,14 @@ package com.skillstormproject1.batstats.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 
@@ -48,5 +53,20 @@ public class ProductTypeController {
      * deleteProductType DeleteMapping 
      */
 
+    @PostMapping
+    public ResponseEntity<ProductType> createProductType(@RequestBody ProductType productType) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(productTypeService.createProductType(productType));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<ProductType> updateProductType(@PathVariable int id, @RequestBody ProductType productType) {
+        return ResponseEntity.ok(productTypeService.updateProductType(id, productType));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteProductType(@PathVariable int id) {
+        productTypeService.deleteProductType(id);
+        return ResponseEntity.noContent().build();
+    }
 
 }

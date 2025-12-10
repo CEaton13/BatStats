@@ -10,7 +10,10 @@ import com.skillstormproject1.batstats.dtos.WarehouseDTO;
 import com.skillstormproject1.batstats.models.Warehouse;
 import com.skillstormproject1.batstats.repositories.WarehouseRepository;
 
+import jakarta.transaction.Transactional;
+
 @Service
+@Transactional
 public class WarehouseService {
 
     private final WarehouseRepository warehouseRepository;
@@ -27,7 +30,7 @@ public class WarehouseService {
     // find a warehouse by id or throw exception
     public Warehouse getWarehouseById(int id) {
         return warehouseRepository.findById(id).orElseThrow(() -> 
-        new ResponseStatusException(HttpStatus.NOT_FOUND, "Warehouse not found with id: " + id));
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Warehouse not found with id: " + id));
     }
 
     // list warehouses by status
@@ -35,6 +38,10 @@ public class WarehouseService {
         return warehouseRepository.findByStatus(status);
     }
 
+    // list warehouses that are greater than capacity passed 
+    public List<Warehouse> getWarehousesNearCapacity(Double threshold) {
+        return warehouseRepository.findWarehousesNearCapacity(threshold);
+    }
 
     /**
      * createWarehouse - warehouseDTO

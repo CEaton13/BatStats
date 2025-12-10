@@ -2,7 +2,9 @@ package com.skillstormproject1.batstats.services;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.skillstormproject1.batstats.models.InventoryItem;
 import com.skillstormproject1.batstats.repositories.InventoryItemRepository;
@@ -33,7 +35,8 @@ public class InventoryItemService {
 
     // get item by inventory id
     public InventoryItem getInventoryItemById(int id){
-        return inventoryItemRepository.findById(id).orElseThrow();
+        return inventoryItemRepository.findById(id).orElseThrow(() ->
+            new ResponseStatusException(HttpStatus.NOT_FOUND, "Iventory item not found with id: " + id));
     }
 
     // get all items in a specific warehouse
@@ -51,5 +54,7 @@ public class InventoryItemService {
      * updateInventoryItem - update quantity which will affect warehouse capacity
      * deleteInvntoryItem - this will also affect warehouse capacity
      */
+
+
 
 }

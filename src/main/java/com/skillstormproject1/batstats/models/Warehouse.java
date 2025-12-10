@@ -7,6 +7,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -24,10 +26,10 @@ public class Warehouse {
     private String location;
 
     @Column(name="max_capacity")
-    private int maxCapacity;
+    private Integer maxCapacity;
 
     @Column(name="current_capacity")
-    private int currentCapacity;
+    private Integer currentCapacity;
     
     @Column
     private String status;
@@ -38,8 +40,10 @@ public class Warehouse {
     @Column(name="updated_at")
     private LocalDateTime updatedAt;
 
-    // Constructors
+    // Default Constructor
     public Warehouse() {
+        this.currentCapacity = 0;
+        this.status = "ACTIVE";
     }
 
     public Warehouse(int id, String name, String location, int maxCapacity, int currentCapacity, String status,
@@ -52,6 +56,45 @@ public class Warehouse {
         this.status = status;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    // Constructor without time stamps
+    public Warehouse(String name, String location, Integer maxCapacity) {
+        this.name = name;
+        this.location = location;
+        this.maxCapacity = maxCapacity;
+        this.currentCapacity = 0;
+        this.status = "ACTIVE";
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (currentCapacity == null) {
+            currentCapacity = 0;
+        }
+        if (status == null) {
+            status = "ACTIVE";
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // calculation for the capacity left in warehouse
+    public Integer getAvailableCapacity() {
+        return maxCapacity - currentCapacity;
+    }
+    
+    // calculation for the percentage of the warehouse used 
+    public Double getCapacityPercentage() {
+        if (maxCapacity == 0) {
+            return 0.0;
+        }
+        return (currentCapacity.doubleValue() / maxCapacity.doubleValue()) * 100;
     }
 
     public int getId() {
