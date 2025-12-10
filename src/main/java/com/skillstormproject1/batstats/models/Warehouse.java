@@ -7,6 +7,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -15,34 +17,36 @@ public class Warehouse {
    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column
+    @Column(nullable = false, length = 200)
     private String location;
 
-    @Column(name="max_capacity")
-    private int maxCapacity;
+    @Column(name="max_capacity", nullable = false)
+    private Integer maxCapacity;
 
-    @Column(name="current_capacity")
-    private int currentCapacity;
+    @Column(name="current_capacity", nullable = false)
+    private Integer currentCapacity;
     
-    @Column
+    @Column(length = 20)
     private String status;
 
-    @Column(name="created_at")
+    @Column(name="created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
     @Column(name="updated_at")
     private LocalDateTime updatedAt;
 
-    // Constructors
+    // Default Constructor
     public Warehouse() {
+        this.currentCapacity = 0;
+        this.status = "ACTIVE";
     }
 
-    public Warehouse(int id, String name, String location, int maxCapacity, int currentCapacity, String status,
+    public Warehouse(Integer id, String name, String location, int maxCapacity, int currentCapacity, String status,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
@@ -54,11 +58,68 @@ public class Warehouse {
         this.updatedAt = updatedAt;
     }
 
-    public int getId() {
+    // Constructor without time stamps
+    public Warehouse(String name, String location, Integer maxCapacity) {
+        this.name = name;
+        this.location = location;
+        this.maxCapacity = maxCapacity;
+        this.currentCapacity = 0;
+        this.status = "ACTIVE";
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (currentCapacity == null) {
+            currentCapacity = 0;
+        }
+        if (status == null) {
+            status = "ACTIVE";
+        }
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // calculation for the capacity left in warehouse
+    public Integer getAvailableCapacity() {
+        return maxCapacity - currentCapacity;
+    }
+    
+    // calculation for the percentage of the warehouse used 
+    public Double getCapacityPercentage() {
+        if (maxCapacity == 0) {
+            return 0.0;
+        }
+        return (currentCapacity.doubleValue() / maxCapacity.doubleValue()) * 100;
+    }
+
+/* 
+    // check if there is going to be room for the quantity of items to store
+    public boolean hasCapacityFor(Integer quantity) {
+        return (currentCapacity + quantity) <= maxCapacity;
+    }
+
+    // add the quantity to store to the current capacity
+    public void addCapacity(Integer quantity) {
+        this.currentCapacity += quantity;
+    }
+
+    // removes the quantity from the current capacity
+    public void removeCapacity(Integer quantity) {
+        this.currentCapacity = Math.max(0, this.currentCapacity - quantity);
+    }
+*/
+
+    //Getters and setters
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
