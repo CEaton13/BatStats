@@ -97,6 +97,22 @@ public class Warehouse {
         return (currentCapacity.doubleValue() / maxCapacity.doubleValue()) * 100;
     }
 
+    // check if there is going to be room for the quantity of items to store
+    public boolean hasCapacityFor(Integer quantity) {
+        return (currentCapacity + quantity) <= maxCapacity;
+    }
+
+    // add the quantity to store to the current capacity
+    public void addCapacity(Integer quantity) {
+        this.currentCapacity += quantity;
+    }
+
+    // removes the quantity from the current capacity
+    public void removeCapacity(Integer quantity) {
+        this.currentCapacity = Math.max(0, this.currentCapacity - quantity);
+    }
+
+    //Getters and setters
     public int getId() {
         return id;
     }

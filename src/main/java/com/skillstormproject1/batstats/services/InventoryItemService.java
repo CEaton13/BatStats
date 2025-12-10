@@ -6,10 +6,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.skillstormproject1.batstats.dtos.InventoryItemDTO;
 import com.skillstormproject1.batstats.models.InventoryItem;
+import com.skillstormproject1.batstats.models.ProductType;
+import com.skillstormproject1.batstats.models.Warehouse;
 import com.skillstormproject1.batstats.repositories.InventoryItemRepository;
-import com.skillstormproject1.batstats.repositories.ProductTypeRepository;
-import com.skillstormproject1.batstats.repositories.WarehouseRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -18,14 +19,14 @@ import jakarta.transaction.Transactional;
 public class InventoryItemService {
 
     private final InventoryItemRepository inventoryItemRepository;
-    private final WarehouseRepository warehouseRepository;
-    private final ProductTypeRepository productTypeRepository;
+    private final WarehouseService warehouseService;
+    private final ProductTypeService productTypeService;
 
-    public InventoryItemService(InventoryItemRepository inventoryItemRepository,
-            WarehouseRepository warehouseRepository, ProductTypeRepository productTypeRepository) {
+    public InventoryItemService(InventoryItemRepository inventoryItemRepository, WarehouseService warehouseService,
+            ProductTypeService productTypeService) {
         this.inventoryItemRepository = inventoryItemRepository;
-        this.warehouseRepository = warehouseRepository;
-        this.productTypeRepository = productTypeRepository;
+        this.warehouseService = warehouseService;
+        this.productTypeService = productTypeService;
     }
 
     // finds all inventory items 
@@ -55,6 +56,82 @@ public class InventoryItemService {
      * deleteInvntoryItem - this will also affect warehouse capacity
      */
 
+    public InventoryItem createInventoryItem(InventoryItem item) {
+        
+        // Check for duplicate serial number
+        if (inventoryItemRepository.existsBySerialNumber(item.getSerialNumber())) {
+            throw new RuntimeException("Item with serial number '" + item.getSerialNumber() + "' already exists");
+        }
+        
+        // Validate product type exists
+        ProductType productType = productTypeService.getProductTypeById(item.getProductType().getId());
+        item.setProductType(productType);
+        
+        // Validate warehouse exists and has capacity
+        Warehouse warehouse = warehouseService.getWarehouseById(item.getWarehouse().getId());
+        if (!warehouse.hasCapacityFor(item.getQuantity())) {
+            throw new RuntimeException("Warehouse '" + warehouse.getName() + "' does not have sufficient capacity. " +
+                                     "Available: " + warehouse.getAvailableCapacity() + 
+                                     ", Required: " + item.getQuantity());
+        }
+        
+        item.setWarehouse(warehouse);
+        
+        // Save the item
+        InventoryItem savedItem = inventoryItemRepository.save(item);
+        
+        // Update warehouse capacity
+        warehouseService.updateWarehouseCapacity(warehouse.getId(), item.getQuantity());
 
+        return savedItem;
+    }
+
+    
+    public InventoryItem updateInventoryItem(int id, InventoryItem itemDetails) {
+    
+        InventoryItem item = getInventoryItemById(id);
+        Integer oldQuantity = item.getQuantity();
+        int oldWarehouseId = item.getWarehouse().getId();
+        
+        // Check for serial number conflicts (excluding current item)
+        if (!item.getSerialNumber().equals(itemDetails.getSerialNumber()) && 
+            inventoryItemRepository.existsBySerialNumber(itemDetails.getSerialNumber())) {
+            throw new RuntimeException("Item with serial number '" + itemDetails.getSerialNumber() + "' already exists");
+        }
+        
+        // Update basic fields
+        item.setSerialNumber(itemDetails.getSerialNumber());
+        
+        // Handle quantity change
+        if (!oldQuantity.equals(itemDetails.getQuantity())) {
+            Integer quantityDelta = itemDetails.getQuantity() - oldQuantity;
+            
+            Warehouse warehouse = item.getWarehouse();
+            if (quantityDelta > 0 && !warehouse.hasCapacityFor(quantityDelta)) {
+                throw new RuntimeException("Warehouse does not have sufficient capacity for quantity increase. " +
+                                         "Available: " + warehouse.getAvailableCapacity() + 
+                                         ", Required: " + quantityDelta);
+            }
+            
+            item.setQuantity(itemDetails.getQuantity());
+            warehouseService.updateWarehouseCapacity(oldWarehouseId, quantityDelta);
+        }
+        
+        InventoryItem updatedItem = inventoryItemRepository.save(item);
+        return updatedItem;
+    }
+
+    
+    public void deleteInventoryItem(int id) {
+        
+        InventoryItem item = getInventoryItemById(id);
+        
+        // Update warehouse capacity
+        warehouseService.updateWarehouseCapacity(item.getWarehouse().getId(), -item.getQuantity());
+        
+        inventoryItemRepository.deleteById(id);
+    }
+
+    
 
 }
