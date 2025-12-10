@@ -92,7 +92,7 @@ public class ProductType {
         return unitOfMeasure;
     }
 
-    public void setUnit(String unitOfMeasure) {
+    public void setUnitOfMeasure(String unitOfMeasure) {
         this.unitOfMeasure = unitOfMeasure;
     }
 

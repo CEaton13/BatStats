@@ -59,7 +59,7 @@ public class WarehouseService {
         return warehouseRepository.save(warehouse);
     }
 
-    public Warehouse updateWarehouse(int id, WarehouseDTO warehouseDTO) {
+    public Warehouse updateWarehouse(Integer id, WarehouseDTO warehouseDTO) {
         Warehouse existing = getWarehouseById(id);
         existing.setName(warehouseDTO.getName());
         existing.setLocation(warehouseDTO.getLocation());
@@ -70,7 +70,7 @@ public class WarehouseService {
         return warehouseRepository.save(existing);
     }
 
-    public void deleteWarehouse(int id) {
+    public void deleteWarehouse(Integer id) {
         if (!warehouseRepository.existsById(id)) {
             throw new ResponseStatusException(
                 HttpStatus.NOT_FOUND,"Warehouse not found with id: " + id);
@@ -79,7 +79,7 @@ public class WarehouseService {
     }
 
     // update the capacity after adding or removing inventory items
-    public void updateWarehouseCapacity(int warehouseId, Integer quantityChange) {
+    public void updateWarehouseCapacity(Integer warehouseId, Integer quantityChange) {
         Warehouse warehouse = getWarehouseById(warehouseId);
         
         Integer newCapacity = warehouse.getCurrentCapacity() + quantityChange;

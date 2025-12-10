@@ -51,7 +51,7 @@ public class ProductTypeService {
         ProductType existing = getProductTypeById(id);
         existing.setName(productType.getName());
         existing.setCategory(productType.getCategory());
-        existing.setUnit(productType.getUnit());
+        existing.setUnitOfMeasure(productType.getUnitOfMeasure());
         return productTypeRepository.save(existing);
     }
     

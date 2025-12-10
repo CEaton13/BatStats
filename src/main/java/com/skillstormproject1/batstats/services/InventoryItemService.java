@@ -7,10 +7,15 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.skillstormproject1.batstats.dtos.InventoryItemDTO;
+import com.skillstormproject1.batstats.exceptions.DuplicateSerialNumberException;
+import com.skillstormproject1.batstats.exceptions.ResourceNotFoundException;
+import com.skillstormproject1.batstats.exceptions.WarehouseCapacityExceededException;
 import com.skillstormproject1.batstats.models.InventoryItem;
 import com.skillstormproject1.batstats.models.ProductType;
 import com.skillstormproject1.batstats.models.Warehouse;
 import com.skillstormproject1.batstats.repositories.InventoryItemRepository;
+import com.skillstormproject1.batstats.repositories.ProductTypeRepository;
+import com.skillstormproject1.batstats.repositories.WarehouseRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -19,14 +24,15 @@ import jakarta.transaction.Transactional;
 public class InventoryItemService {
 
     private final InventoryItemRepository inventoryItemRepository;
-    private final WarehouseService warehouseService;
-    private final ProductTypeService productTypeService;
-
-    public InventoryItemService(InventoryItemRepository inventoryItemRepository, WarehouseService warehouseService,
-            ProductTypeService productTypeService) {
+    private final WarehouseRepository warehouseRepository;
+    private final ProductTypeRepository productTypeRepository;
+    
+    public InventoryItemService(InventoryItemRepository inventoryItemRepository,
+                               WarehouseRepository warehouseRepository,
+                               ProductTypeRepository productTypeRepository) {
         this.inventoryItemRepository = inventoryItemRepository;
-        this.warehouseService = warehouseService;
-        this.productTypeService = productTypeService;
+        this.warehouseRepository = warehouseRepository;
+        this.productTypeRepository = productTypeRepository;
     }
 
     // finds all inventory items 
@@ -55,83 +61,75 @@ public class InventoryItemService {
      * updateInventoryItem - update quantity which will affect warehouse capacity
      * deleteInvntoryItem - this will also affect warehouse capacity
      */
-
-    public InventoryItem createInventoryItem(InventoryItem item) {
-        
-        // Check for duplicate serial number
-        if (inventoryItemRepository.existsBySerialNumber(item.getSerialNumber())) {
-            throw new RuntimeException("Item with serial number '" + item.getSerialNumber() + "' already exists");
+    
+    public InventoryItem createInventoryItem(InventoryItemDTO itemDTO) {
+        if (inventoryItemRepository.existsBySerialNumber(itemDTO.getSerialNumber())) {
+            throw new DuplicateSerialNumberException(
+                "Item with serial number " + itemDTO.getSerialNumber() + " already exists");
         }
         
-        // Validate product type exists
-        ProductType productType = productTypeService.getProductTypeById(item.getProductType().getId());
+        Warehouse warehouse = warehouseRepository.findById(itemDTO.getWarehouseId())
+            .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + itemDTO.getWarehouseId()));
+        
+        ProductType productType = productTypeRepository.findById(itemDTO.getProductTypeId())
+            .orElseThrow(() -> new ResourceNotFoundException("Product type not found with id: " + itemDTO.getProductTypeId()));
+        
+        validateWarehouseCapacity(warehouse, itemDTO.getQuantity());
+        
+        InventoryItem item = new InventoryItem();
+        item.setSerialNumber(itemDTO.getSerialNumber());
         item.setProductType(productType);
-        
-        // Validate warehouse exists and has capacity
-        Warehouse warehouse = warehouseService.getWarehouseById(item.getWarehouse().getId());
-        if (!warehouse.hasCapacityFor(item.getQuantity())) {
-            throw new RuntimeException("Warehouse '" + warehouse.getName() + "' does not have sufficient capacity. " +
-                                     "Available: " + warehouse.getAvailableCapacity() + 
-                                     ", Required: " + item.getQuantity());
-        }
-        
         item.setWarehouse(warehouse);
+        item.setQuantity(itemDTO.getQuantity());
+
         
-        // Save the item
         InventoryItem savedItem = inventoryItemRepository.save(item);
         
-        // Update warehouse capacity
-        warehouseService.updateWarehouseCapacity(warehouse.getId(), item.getQuantity());
-
+        warehouse.setCurrentCapacity(warehouse.getCurrentCapacity() + itemDTO.getQuantity());
+        warehouseRepository.save(warehouse);
+        
         return savedItem;
     }
-
     
-    public InventoryItem updateInventoryItem(int id, InventoryItem itemDetails) {
-    
-        InventoryItem item = getInventoryItemById(id);
-        Integer oldQuantity = item.getQuantity();
-        int oldWarehouseId = item.getWarehouse().getId();
+    public InventoryItem updateInventoryItem(Integer id, InventoryItemDTO itemDTO) {
+        InventoryItem existing = getInventoryItemById(id);
+        Warehouse currentWarehouse = existing.getWarehouse();
         
-        // Check for serial number conflicts (excluding current item)
-        if (!item.getSerialNumber().equals(itemDetails.getSerialNumber()) && 
-            inventoryItemRepository.existsBySerialNumber(itemDetails.getSerialNumber())) {
-            throw new RuntimeException("Item with serial number '" + itemDetails.getSerialNumber() + "' already exists");
+        int quantityDifference = itemDTO.getQuantity() - existing.getQuantity();
+        
+        if (quantityDifference > 0) {
+            validateWarehouseCapacity(currentWarehouse, quantityDifference);
         }
         
-        // Update basic fields
-        item.setSerialNumber(itemDetails.getSerialNumber());
+        existing.setQuantity(itemDTO.getQuantity());
         
-        // Handle quantity change
-        if (!oldQuantity.equals(itemDetails.getQuantity())) {
-            Integer quantityDelta = itemDetails.getQuantity() - oldQuantity;
-            
-            Warehouse warehouse = item.getWarehouse();
-            if (quantityDelta > 0 && !warehouse.hasCapacityFor(quantityDelta)) {
-                throw new RuntimeException("Warehouse does not have sufficient capacity for quantity increase. " +
-                                         "Available: " + warehouse.getAvailableCapacity() + 
-                                         ", Required: " + quantityDelta);
-            }
-            
-            item.setQuantity(itemDetails.getQuantity());
-            warehouseService.updateWarehouseCapacity(oldWarehouseId, quantityDelta);
-        }
+        InventoryItem updatedItem = inventoryItemRepository.save(existing);
         
-        InventoryItem updatedItem = inventoryItemRepository.save(item);
+        currentWarehouse.setCurrentCapacity(currentWarehouse.getCurrentCapacity() + quantityDifference);
+        warehouseRepository.save(currentWarehouse);
+        
         return updatedItem;
     }
-
     
-    public void deleteInventoryItem(int id) {
-        
+    
+    public void deleteInventoryItem(Integer id) {
         InventoryItem item = getInventoryItemById(id);
+        Warehouse warehouse = item.getWarehouse();
         
-        // Update warehouse capacity
-        warehouseService.updateWarehouseCapacity(item.getWarehouse().getId(), -item.getQuantity());
+        warehouse.setCurrentCapacity(warehouse.getCurrentCapacity() - item.getQuantity());
+        warehouseRepository.save(warehouse);
         
         inventoryItemRepository.deleteById(id);
     }
 
     
-
+    // helper method to make sure that the warehouse has the avaliable capacity or throw error in createInventoryItem
+    private void validateWarehouseCapacity(Warehouse warehouse, Integer quantity) {
+        int availableCapacity = warehouse.getAvailableCapacity();
+        if (quantity > availableCapacity) {
+            throw new WarehouseCapacityExceededException(
+                String.format("Warehouse '%s' has insufficient capacity. Available: %d, Required: %d",
+                    warehouse.getName(), availableCapacity, quantity));
+        }
+    }
 }
