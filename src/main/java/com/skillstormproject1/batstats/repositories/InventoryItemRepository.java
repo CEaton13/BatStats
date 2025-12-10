@@ -27,10 +27,10 @@ public interface InventoryItemRepository extends JpaRepository<InventoryItem, In
     boolean existsBySerialNumber(String serialNumber);
 
     // find all inventory items in a specific warehouse
-    List<InventoryItem> findByWarehouseId(int warehouseId);
+    List<InventoryItem> findByWarehouseId(Integer warehouseId);
 
     // find all inventory items of a certain product type
-    List<InventoryItem> findByProductType(int productTypeId);
+    List<InventoryItem> findByProductTypeId(Integer productTypeId);
 
 
 }

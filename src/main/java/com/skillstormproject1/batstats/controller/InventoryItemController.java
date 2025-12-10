@@ -27,19 +27,19 @@ public class InventoryItemController {
 
    // get to find inventory by id
    @GetMapping("/{id}")
-   public ResponseEntity<InventoryItem> getInventoryItemById(@PathVariable int id) {
+   public ResponseEntity<InventoryItem> getInventoryItemById(@PathVariable Integer id) {
          return ResponseEntity.ok(inventoryItemService.getInventoryItemById(id));
    }
    
    // get finds all items in a specific warehouse
    @GetMapping("/warehouse/{warehouseId}")
-   public ResponseEntity<List<InventoryItem>> getItemsByWarehouse(@PathVariable int warehouseId) {
+   public ResponseEntity<List<InventoryItem>> getItemsByWarehouse(@PathVariable Integer warehouseId) {
       return ResponseEntity.ok(inventoryItemService.getItemsByWarehouse(warehouseId));
    }
 
    // get will find items by product type
    @GetMapping("/product-type/{productTypeId}")
-   public ResponseEntity<List<InventoryItem>> getItemsByProductType(@PathVariable int productTypeId) {
+   public ResponseEntity<List<InventoryItem>> getItemsByProductType(@PathVariable Integer productTypeId) {
       return ResponseEntity.ok(inventoryItemService.getItemsByProductType(productTypeId));
    }
 

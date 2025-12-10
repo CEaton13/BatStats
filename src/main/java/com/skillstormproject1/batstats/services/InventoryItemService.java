@@ -53,7 +53,7 @@ public class InventoryItemService {
 
     // find and list all items of a product type
     public List<InventoryItem> getItemsByProductType(Integer productTypeId) {
-        return inventoryItemRepository.findByProductType(productTypeId);
+        return inventoryItemRepository.findByProductTypeId(productTypeId);
     }
     
     /**
