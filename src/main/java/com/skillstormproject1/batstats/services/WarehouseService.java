@@ -28,7 +28,7 @@ public class WarehouseService {
     }
 
     // find a warehouse by id or throw exception
-    public Warehouse getWarehouseById(int id) {
+    public Warehouse getWarehouseById(Integer id) {
         return warehouseRepository.findById(id).orElseThrow(() -> 
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Warehouse not found with id: " + id));
     }

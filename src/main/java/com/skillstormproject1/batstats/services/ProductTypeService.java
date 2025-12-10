@@ -27,7 +27,7 @@ public class ProductTypeService {
     }
     
     // find a product by the id provided
-    public ProductType getProductTypeById(int id){
+    public ProductType getProductTypeById(Integer id){
         return productTypeRepository.findById(id).orElseThrow(() ->
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Product Type not found with id: " + id));    // need to throw an exception if it doesn't find that id
     }
@@ -47,7 +47,7 @@ public class ProductTypeService {
         return productTypeRepository.save(productType);
     }
 
-    public ProductType updateProductType(int id, ProductType productType) {
+    public ProductType updateProductType(Integer id, ProductType productType) {
         ProductType existing = getProductTypeById(id);
         existing.setName(productType.getName());
         existing.setCategory(productType.getCategory());
@@ -55,7 +55,7 @@ public class ProductTypeService {
         return productTypeRepository.save(existing);
     }
     
-    public void deleteProductType(int id) {
+    public void deleteProductType(Integer id) {
         if (!productTypeRepository.existsById(id)) {
             throw new ResponseStatusException(
                 HttpStatus.NOT_FOUND,"Product Type not found with id: " + id);

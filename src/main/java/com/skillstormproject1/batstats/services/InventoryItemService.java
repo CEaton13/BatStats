@@ -41,18 +41,18 @@ public class InventoryItemService {
     }
 
     // get item by inventory id
-    public InventoryItem getInventoryItemById(int id){
+    public InventoryItem getInventoryItemById(Integer id){
         return inventoryItemRepository.findById(id).orElseThrow(() ->
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Iventory item not found with id: " + id));
     }
 
     // get all items in a specific warehouse
-    public List<InventoryItem> getItemsByWarehouse(int warehouseId){
+    public List<InventoryItem> getItemsByWarehouse(Integer warehouseId){
         return inventoryItemRepository.findByWarehouseId(warehouseId);
     }
 
     // find and list all items of a product type
-    public List<InventoryItem> getItemsByProductType(int productTypeId) {
+    public List<InventoryItem> getItemsByProductType(Integer productTypeId) {
         return inventoryItemRepository.findByProductType(productTypeId);
     }
     
@@ -102,7 +102,7 @@ public class InventoryItemService {
         }
         
         existing.setQuantity(itemDTO.getQuantity());
-        
+
         InventoryItem updatedItem = inventoryItemRepository.save(existing);
         
         currentWarehouse.setCurrentCapacity(currentWarehouse.getCurrentCapacity() + quantityDifference);
