@@ -20,24 +20,24 @@ public class InventoryItem {
     // map all of these to columns
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column(name="serial_number")
+    @Column(name="serial_number", nullable = false, unique = true, length = 50)
     private String serialNumber;
 
-    @Column
-    private int quantity;
+    @Column(nullable = false)
+    private Integer quantity;
 
     // productType is where the name of item is located
     @ManyToOne
-    @JoinColumn(name="product_type_id")
+    @JoinColumn(name="product_type_id", nullable = false)
     private ProductType productType;
 
     @ManyToOne
-    @JoinColumn(name="warehouse_id")
+    @JoinColumn(name="warehouse_id", nullable = false)
     private Warehouse warehouse;
     
-    @Column(name="created_at")
+    @Column(name="created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name="updated_at")
@@ -46,7 +46,7 @@ public class InventoryItem {
     public InventoryItem() {
     }
 
-    public InventoryItem(int id, String serialNumber, int quantity, ProductType productType, Warehouse warehouse,
+    public InventoryItem(Integer id, String serialNumber, Integer quantity, ProductType productType, Warehouse warehouse,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.serialNumber = serialNumber;
@@ -55,6 +55,14 @@ public class InventoryItem {
         this.warehouse = warehouse;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+    }
+
+    public InventoryItem(String serialNumber, ProductType productType, 
+                        Warehouse warehouse, Integer quantity) {
+        this.serialNumber = serialNumber;
+        this.productType = productType;
+        this.warehouse = warehouse;
+        this.quantity = quantity;
     }
 
     @PrePersist
@@ -68,11 +76,11 @@ public class InventoryItem {
         updatedAt = LocalDateTime.now();
     }
 
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -84,11 +92,11 @@ public class InventoryItem {
         this.serialNumber = serialNumber;
     }
 
-    public int getQuantity() {
+    public Integer getQuantity() {
         return quantity;
     }
 
-    public void setQuantity(int quantity) {
+    public void setQuantity(Integer quantity) {
         this.quantity = quantity;
     }
 

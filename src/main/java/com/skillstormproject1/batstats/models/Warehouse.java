@@ -17,24 +17,24 @@ public class Warehouse {
    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column
+    @Column(nullable = false, length = 200)
     private String location;
 
-    @Column(name="max_capacity")
+    @Column(name="max_capacity", nullable = false)
     private Integer maxCapacity;
 
-    @Column(name="current_capacity")
+    @Column(name="current_capacity", nullable = false)
     private Integer currentCapacity;
     
-    @Column
+    @Column(length = 20)
     private String status;
 
-    @Column(name="created_at")
+    @Column(name="created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
     
     @Column(name="updated_at")
@@ -46,7 +46,7 @@ public class Warehouse {
         this.status = "ACTIVE";
     }
 
-    public Warehouse(int id, String name, String location, int maxCapacity, int currentCapacity, String status,
+    public Warehouse(Integer id, String name, String location, int maxCapacity, int currentCapacity, String status,
             LocalDateTime createdAt, LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
@@ -97,6 +97,7 @@ public class Warehouse {
         return (currentCapacity.doubleValue() / maxCapacity.doubleValue()) * 100;
     }
 
+/* 
     // check if there is going to be room for the quantity of items to store
     public boolean hasCapacityFor(Integer quantity) {
         return (currentCapacity + quantity) <= maxCapacity;
@@ -111,13 +112,14 @@ public class Warehouse {
     public void removeCapacity(Integer quantity) {
         this.currentCapacity = Math.max(0, this.currentCapacity - quantity);
     }
+*/
 
     //Getters and setters
-    public int getId() {
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 

@@ -7,6 +7,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -15,42 +17,58 @@ public class ProductType {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id;
 
-    @Column
+    @Column(nullable = false, unique = true, length = 100)
     private String name;
     
-    @Column
+    @Column(nullable = false, length = 50)
     private String category;
     
-    @Column(name="unit_of_measure")
-    private String unit;
+    @Column(name="unit_of_measure", nullable = false, updatable = false)
+    private String unitOfMeasure;
 
-    @Column(name="created_at")
+    @Column(name="created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name="updated_at")
-    private LocalDateTime updated_at;
+    private LocalDateTime updatedAt;
     
     // Constructors 
     public ProductType() {
     }
 
-    public ProductType(int id, String name, String category, String unit, LocalDateTime createdAt,
-            LocalDateTime updated_at) {
+    public ProductType(Integer id, String name, String category, String unitOfMeasure, LocalDateTime createdAt,
+            LocalDateTime updatedAt) {
         this.id = id;
         this.name = name;
         this.category = category;
-        this.unit = unit;
+        this.unitOfMeasure = unitOfMeasure;
         this.createdAt = createdAt;
-        this.updated_at = updated_at;
+        this.updatedAt = updatedAt;
     }
 
-    public int getId() {
+    public ProductType(String name, String category, String unitOfMeasure) {
+        this.name = name;
+        this.category = category;
+        this.unitOfMeasure = unitOfMeasure;
+    }
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+    
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+    public Integer getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(Integer id) {
         this.id = id;
     }
 
@@ -70,12 +88,12 @@ public class ProductType {
         this.category = category;
     }
 
-    public String getUnit() {
-        return unit;
+    public String getUnitOfMeasure() {
+        return unitOfMeasure;
     }
 
-    public void setUnit(String unit) {
-        this.unit = unit;
+    public void setUnit(String unitOfMeasure) {
+        this.unitOfMeasure = unitOfMeasure;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -86,12 +104,12 @@ public class ProductType {
         this.createdAt = createdAt;
     }
 
-    public LocalDateTime getUpdated_at() {
-        return updated_at;
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 
-    public void setUpdated_at(LocalDateTime updated_at) {
-        this.updated_at = updated_at;
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     @Override
@@ -101,9 +119,9 @@ public class ProductType {
         result = prime * result + id;
         result = prime * result + ((name == null) ? 0 : name.hashCode());
         result = prime * result + ((category == null) ? 0 : category.hashCode());
-        result = prime * result + ((unit == null) ? 0 : unit.hashCode());
+        result = prime * result + ((unitOfMeasure == null) ? 0 : unitOfMeasure.hashCode());
         result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
-        result = prime * result + ((updated_at == null) ? 0 : updated_at.hashCode());
+        result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
         return result;
     }
 
@@ -128,31 +146,27 @@ public class ProductType {
                 return false;
         } else if (!category.equals(other.category))
             return false;
-        if (unit == null) {
-            if (other.unit != null)
+        if (unitOfMeasure == null) {
+            if (other.unitOfMeasure != null)
                 return false;
-        } else if (!unit.equals(other.unit))
+        } else if (!unitOfMeasure.equals(other.unitOfMeasure))
             return false;
         if (createdAt == null) {
             if (other.createdAt != null)
                 return false;
         } else if (!createdAt.equals(other.createdAt))
             return false;
-        if (updated_at == null) {
-            if (other.updated_at != null)
+        if (updatedAt == null) {
+            if (other.updatedAt != null)
                 return false;
-        } else if (!updated_at.equals(other.updated_at))
+        } else if (!updatedAt.equals(other.updatedAt))
             return false;
         return true;
     }
 
     @Override
     public String toString() {
-        return "ProductType [id=" + id + ", name=" + name + ", category=" + category + ", unit=" + unit + ", createdAt="
-                + createdAt + ", updated_at=" + updated_at + "]";
+        return "ProductType [id=" + id + ", name=" + name + ", category=" + category + ", unitOfMeasure=" + unitOfMeasure + ", createdAt="
+                + createdAt + ", updatedAt=" + updatedAt + "]";
     }
-
-   
-
-    
 }

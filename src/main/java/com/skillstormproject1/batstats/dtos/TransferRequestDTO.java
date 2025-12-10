@@ -2,42 +2,42 @@ package com.skillstormproject1.batstats.dtos;
 
 public class TransferRequestDTO {
     
-    private int itemId;
-    private int sourceWarehouseId;
-    private int destinationWarehouseId;
+    private Integer itemId;
+    private Integer sourceWarehouseId;
+    private Integer destinationWarehouseId;
     private Integer quantity;
    
     public TransferRequestDTO() {
     }
 
-    public TransferRequestDTO(int itemId, int sourceWarehouseId, int destinationWarehouseId, Integer quantity) {
+    public TransferRequestDTO(Integer itemId, Integer sourceWarehouseId, Integer destinationWarehouseId, Integer quantity) {
         this.itemId = itemId;
         this.sourceWarehouseId = sourceWarehouseId;
         this.destinationWarehouseId = destinationWarehouseId;
         this.quantity = quantity;
     }
 
-    public int getItemId() {
+    public Integer getItemId() {
         return itemId;
     }
 
-    public void setItemId(int itemId) {
+    public void setItemId(Integer itemId) {
         this.itemId = itemId;
     }
 
-    public int getSourceWarehouseId() {
+    public Integer getSourceWarehouseId() {
         return sourceWarehouseId;
     }
 
-    public void setSourceWarehouseId(int sourceWarehouseId) {
+    public void setSourceWarehouseId(Integer sourceWarehouseId) {
         this.sourceWarehouseId = sourceWarehouseId;
     }
 
-    public int getDestinationWarehouseId() {
+    public Integer getDestinationWarehouseId() {
         return destinationWarehouseId;
     }
 
-    public void setDestinationWarehouseId(int destinationWarehouseId) {
+    public void setDestinationWarehouseId(Integer destinationWarehouseId) {
         this.destinationWarehouseId = destinationWarehouseId;
     }
 

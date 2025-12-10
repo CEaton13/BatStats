@@ -4,14 +4,14 @@ package com.skillstormproject1.batstats.dtos;
 public class InventoryItemDTO {
     
     private String serialNumber;
-    private int productTypeId;
-    private int warehouseId;
+    private Integer productTypeId;
+    private Integer warehouseId;
     private Integer quantity;
     
     public InventoryItemDTO() {
     }
 
-    public InventoryItemDTO(String serialNumber, int productTypeId, int warehouseId, Integer quantity) {
+    public InventoryItemDTO(String serialNumber, Integer productTypeId, Integer warehouseId, Integer quantity) {
         this.serialNumber = serialNumber;
         this.productTypeId = productTypeId;
         this.warehouseId = warehouseId;
@@ -26,19 +26,19 @@ public class InventoryItemDTO {
         this.serialNumber = serialNumber;
     }
 
-    public int getProductTypeId() {
+    public Integer getProductTypeId() {
         return productTypeId;
     }
 
-    public void setProductTypeId(int productTypeId) {
+    public void setProductTypeId(Integer productTypeId) {
         this.productTypeId = productTypeId;
     }
 
-    public int getWarehouseId() {
+    public Integer getWarehouseId() {
         return warehouseId;
     }
 
-    public void setWarehouseId(int warehouseId) {
+    public void setWarehouseId(Integer warehouseId) {
         this.warehouseId = warehouseId;
     }
 
