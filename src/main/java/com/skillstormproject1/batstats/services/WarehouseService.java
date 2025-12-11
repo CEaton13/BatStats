@@ -77,24 +77,4 @@ public class WarehouseService {
         }
         warehouseRepository.deleteById(id);
     }
-
-    // update the capacity after adding or removing inventory items
-    public void updateWarehouseCapacity(Integer warehouseId, Integer quantityChange) {
-        Warehouse warehouse = getWarehouseById(warehouseId);
-        
-        Integer newCapacity = warehouse.getCurrentCapacity() + quantityChange;
-        
-        if (newCapacity < 0) {
-            throw new RuntimeException("Capacity cannot be negative");
-        }
-        
-        if (newCapacity > warehouse.getMaxCapacity()) {
-            throw new RuntimeException("Operation would exceed warehouse capacity. " +
-                                     "Available: " + warehouse.getAvailableCapacity() + 
-                                     ", Required: " + quantityChange);
-        }
-        
-        warehouse.setCurrentCapacity(newCapacity);
-        warehouseRepository.save(warehouse);
-    }
 }

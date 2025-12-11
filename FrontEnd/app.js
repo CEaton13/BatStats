@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('BatStats Inventory System initialized');
     setupNavigation();
     loadDashboard();
-    //setupForms();
+    setupForms();
 });
 
 
@@ -96,8 +96,8 @@ async function loadDashboard() {
     try {
         await Promise.all([
             loadWarehouses(),
-            //loadInventoryItems(),
-           // loadProductTypes()
+            loadInventoryItems(),
+            loadProductTypes()
         ]);
         
         updateDashboardStats();
@@ -310,14 +310,12 @@ function displayInventoryItems() {
     const tbody = document.getElementById('inventoryTableBody');
     
     if (inventoryItems.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-grey">No inventory items found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-grey">No inventory items found</td></tr>';
         return;
     }
     
     let html = '';
     inventoryItems.forEach(item => {
-        const conditionBadge = getConditionBadge(item.condition);
-        
         html += `
             <tr>
                 <td><code class="text-yellow">${item.serialNumber}</code></td>
@@ -335,8 +333,6 @@ function displayInventoryItems() {
             </tr>
         `;
     });
-    
-    tbody.innerHTML = html;
 }
 
 // create a new Inventory Item in the database
@@ -346,7 +342,7 @@ async function saveInventoryItem() {
         serialNumber: document.getElementById('inventorySerial').value,
         productType: { id: parseInt(document.getElementById('inventoryProductType').value) },
         warehouse: { id: parseInt(document.getElementById('inventoryWarehouse').value) },
-        quantity: parseInt(document.getElementById('inventoryQuantity').value),
+        quantity: parseInt(document.getElementById('inventoryQuantity').value)
     };
     
     try {
@@ -376,6 +372,7 @@ async function saveInventoryItem() {
         showAlert(error.message, 'danger');
     }
 }
+
 // update inventory item
 function editInventoryItem(id) {
     const item = inventoryItems.find(i => i.id === id);
@@ -390,6 +387,7 @@ function editInventoryItem(id) {
     // Scroll to form
     document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
 }
+
 // delete inventory item
 async function deleteInventoryItem(id) {
     if (!confirm('Are you sure you want to delete this inventory item?')) return;
@@ -412,3 +410,151 @@ async function deleteInventoryItem(id) {
 
 
 // Product Type 
+async function loadProductTypes() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/products`);
+        productTypes = await response.json();
+        
+        if (currentSection === 'products') {
+            displayProductTypes();
+        }
+        
+        populateProductTypeSelects();
+        return productTypes;
+    } catch (error) {
+        console.error('Error loading product types:', error);
+        throw error;
+    }
+}
+
+function displayProductTypes() {
+    const grid = document.getElementById('productsGrid');
+    
+    if (productTypes.length === 0) {
+        grid.innerHTML = '<p class="text-grey">No product types found</p>';
+        return;
+    }
+    
+    let html = '';
+    productTypes.forEach(product => {
+        html += `
+            <div class="product-card">
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <h5 class="text-yellow mb-0">${product.name}</h5>
+                    <span class="badge badge-blue">${product.category}</span>
+                </div>
+                <p class="mb-3"><small class="text-grey"><i class="bi bi-box"></i> Unit: ${product.unitOfMeasure}</small></p>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-bat-action btn-sm flex-fill" onclick="editProductType(${product.id})">
+                        <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn btn-bat-danger btn-sm flex-fill" onclick="deleteProductType(${product.id})">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+    
+    grid.innerHTML = html;
+}
+
+async function saveProductType() {
+    const id = document.getElementById('productId').value;
+    const product = {
+        name: document.getElementById('productName').value,
+        category: document.getElementById('productCategory').value,
+        unitOfMeasure: document.getElementById('productUnit').value,
+    };
+    
+    try {
+        const url = id ? `${API_BASE_URL}/products/${id}` : `${API_BASE_URL}/products`;
+        const method = id ? 'PUT' : 'POST';
+        
+        const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(product)
+        });
+        
+        if (!response.ok) throw new Error('Failed to save product type');
+        
+        // Clear form
+        document.getElementById('productForm').reset();
+        document.getElementById('productId').value = '';
+        
+        await loadProductTypes();
+        showAlert(`Product type ${id ? 'updated' : 'created'} successfully`, 'success');
+    } catch (error) {
+        console.error('Error saving product type:', error);
+        showAlert('Failed to save product type', 'danger');
+    }
+}
+
+function editProductType(id) {
+    const product = productTypes.find(p => p.id === id);
+    if (!product) return;
+    
+    document.getElementById('productId').value = product.id;
+    document.getElementById('productName').value = product.name;
+    document.getElementById('productCategory').value = product.category;
+    document.getElementById('productUnit').value = product.unitOfMeasure;
+    
+    // Scroll to form
+    document.getElementById('productForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function deleteProductType(id) {
+    if (!confirm('Are you sure you want to delete this product type?')) return;
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/products/${id}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) throw new Error('Failed to delete product type');
+        
+        await loadProductTypes();
+        showAlert('Product type deleted successfully', 'success');
+    } catch (error) {
+        console.error('Error deleting product type:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+// helper methods to populate our elements when selected 
+function populateWarehouseSelects() {
+    const select = document.getElementById('inventoryWarehouse');
+    if (!select) return;
+    
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Select warehouse...</option>';
+    
+    warehouses.forEach(warehouse => {
+        const option = document.createElement('option');
+        option.value = warehouse.id;
+        option.textContent = `${warehouse.name} (Available: ${warehouse.availableCapacity})`;
+        select.appendChild(option);
+    });
+    
+    if (currentValue) select.value = currentValue;
+}
+
+function populateProductTypeSelects() {
+    const select = document.getElementById('inventoryProductType');
+    if (!select) return;
+    
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Select product type...</option>';
+    
+    productTypes.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.id;
+        option.textContent = `${product.name} (${product.category})`;
+        select.appendChild(option);
+    });
+    
+    if (currentValue) select.value = currentValue;
+}
+
+

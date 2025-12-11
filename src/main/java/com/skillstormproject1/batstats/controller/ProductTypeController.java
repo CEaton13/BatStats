@@ -21,7 +21,7 @@ import com.skillstormproject1.batstats.services.ProductTypeService;
 
 
 @RestController
-@RequestMapping("/api/product-types")
+@RequestMapping("/api/products")
 @CrossOrigin(origins = "http://127.0.0.1:5500")
 public class ProductTypeController {
 

@@ -20,7 +20,7 @@ import com.skillstormproject1.batstats.models.InventoryItem;
 import com.skillstormproject1.batstats.services.InventoryItemService;
 
 @RestController
-@RequestMapping("/api/inventory-items")
+@RequestMapping("/api/inventory")
 @CrossOrigin(origins = "http://127.0.0.1:5500")
 public class InventoryItemController {
     
