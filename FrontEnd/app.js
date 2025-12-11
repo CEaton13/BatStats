@@ -391,7 +391,12 @@ async function deleteWarehouse(id) {
 async function loadInventoryItems() {
     try {
         const response = await fetch(`${API_BASE_URL}/inventory`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
         inventoryItems = await response.json();
+        
+        console.log('Loaded inventory items:', inventoryItems); // Debug log
         
         if (currentSection === 'inventory') {
             displayInventoryItems();
@@ -400,6 +405,7 @@ async function loadInventoryItems() {
         return inventoryItems;
     } catch (error) {
         console.error('Error loading inventory items:', error);
+        showAlert('Failed to load inventory items', 'danger');
         throw error;
     }
 }
@@ -407,28 +413,40 @@ async function loadInventoryItems() {
 function displayInventoryItems() {
     const tbody = document.getElementById('inventoryTableBody');
     
-    if (inventoryItems.length === 0) {
+    if (!inventoryItems || inventoryItems.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center text-grey">No inventory items found</td></tr>';
         return;
     }
     
     let html = '';
     inventoryItems.forEach(item => {
-        // Display multiple locations
-        const locationsHtml = item.warehouseLocations
-            .map(loc => `<span class="badge badge-blue">${loc.warehouse.name}: ${loc.quantity}</span>`)
-            .join(' ');
+        // Defensive checks for all nested properties
+        const serialNumber = item.serialNumber || 'N/A';
+        const productName = item.productType?.name || 'Unknown Product';
+        const locations = item.warehouseLocations || [];
         
-        const totalQuantity = item.warehouseLocations
-            .reduce((sum, loc) => sum + loc.quantity, 0);
+        // Display multiple locations
+        let locationsHtml = '<span class="text-grey">No locations</span>';
+        if (locations.length > 0) {
+            locationsHtml = locations
+                .map(loc => {
+                    const warehouseName = loc.warehouse?.name || 'Unknown';
+                    const quantity = loc.quantity || 0;
+                    return `<span class="badge badge-blue">${warehouseName}: ${quantity}</span>`;
+                })
+                .join(' ');
+        }
+        
+        // Calculate total quantity safely
+        const totalQuantity = locations.reduce((sum, loc) => sum + (loc.quantity || 0), 0);
         
         html += `
             <tr>
-                <td><code class="text-yellow">${item.serialNumber}</code></td>
-                <td>${item.productType.name}</td>
-                <td>${locationsHtml || '<span class="text-grey">No locations</span>'}</td>
+                <td><code class="text-yellow">${serialNumber}</code></td>
+                <td>${productName}</td>
+                <td>${locationsHtml}</td>
                 <td><span class="badge badge-yellow">${totalQuantity}</span></td>
-                <td>${item.warehouseLocations.length} locations</td>
+                <td>${locations.length} location${locations.length !== 1 ? 's' : ''}</td>
                 <td>
                     <button class="btn btn-bat-action btn-sm" onclick="manageItemLocations(${item.id})">
                         <i class="bi bi-pin-map"></i> Locations
@@ -447,7 +465,20 @@ function displayInventoryItems() {
     tbody.innerHTML = html;
 }
 
-
+async function manageItemLocations(itemId) {
+    const item = inventoryItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    // Show modal or section with:
+    // 1. Current locations
+    // 2. Form to add to new warehouse
+    // 3. Forms to update quantities
+    // 4. Transfer between warehouses
+    
+    // This would be a more complex UI component
+    console.log('Managing locations for:', item);
+    alert('Location management UI - see implementation details in guide');
+}
 
 // create a new Inventory Item in the database
 async function saveInventoryItem() {

@@ -4,6 +4,12 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -32,11 +38,11 @@ public class InventoryItem {
 
     // productType is where the name of item is located
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name="product_type_id", nullable = false)
+    @JoinColumn(name = "product_type_id", nullable = false)
     private ProductType productType;
 
     // Many-to-many relationship through junction table
-    @OneToMany(mappedBy = "inventoryItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "inventoryItem", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     private List<WarehouseInventory> warehouseLocations = new ArrayList<>(); 
     
     @Column(name="created_at", nullable = false, updatable = false)
@@ -67,14 +73,22 @@ public class InventoryItem {
     // methods to handle quantity across warehouses and locations
 
     // get total quantity across all warehouse locations
-    public Integer getTotalQuantity() {
+    @JsonProperty("totalQuantity")
+     public Integer getTotalQuantity() {
+        if (warehouseLocations == null || warehouseLocations.isEmpty()) {
+            return 0;
+        }
         return warehouseLocations.stream()
                 .mapToInt(WarehouseInventory::getQuantity)
                 .sum();
     }
 
     // get number of warehouse locations storing this item
+    @JsonProperty("locationCount")
     public Integer getLocationCount() {
+        if (warehouseLocations == null) {
+            return 0;
+        }
         return warehouseLocations.size();
     }
 

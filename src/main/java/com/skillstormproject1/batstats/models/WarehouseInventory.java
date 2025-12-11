@@ -2,6 +2,9 @@ package com.skillstormproject1.batstats.models;
 
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -22,12 +25,13 @@ public class WarehouseInventory {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "warehouse_id", nullable = false)
     private Warehouse warehouse;
     
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "inventory_item_id", nullable = false)
+    @JsonIgnore
     private InventoryItem inventoryItem;
     
     @Column(nullable = false)

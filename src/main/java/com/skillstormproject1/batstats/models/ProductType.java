@@ -1,12 +1,19 @@
 package com.skillstormproject1.batstats.models;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -28,6 +35,13 @@ public class ProductType {
     @Column(name="unit_of_measure", nullable = false, updatable = false)
     private String unitOfMeasure;
 
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @OneToMany(mappedBy = "productType", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
+    private List<InventoryItem> inventoryItems = new ArrayList<>();
+
     @Column(name="created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -36,22 +50,8 @@ public class ProductType {
     
     // Constructors 
     public ProductType() {
-    }
-
-    public ProductType(Integer id, String name, String category, String unitOfMeasure, LocalDateTime createdAt,
-            LocalDateTime updatedAt) {
-        this.id = id;
-        this.name = name;
-        this.category = category;
-        this.unitOfMeasure = unitOfMeasure;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
-    }
-
-    public ProductType(String name, String category, String unitOfMeasure) {
-        this.name = name;
-        this.category = category;
-        this.unitOfMeasure = unitOfMeasure;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
     
     @PrePersist
@@ -96,6 +96,14 @@ public class ProductType {
         this.unitOfMeasure = unitOfMeasure;
     }
 
+    public String getDescription() {
+        return description;
+    }
+    
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -110,6 +118,14 @@ public class ProductType {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public List<InventoryItem> getInventoryItems() {
+        return inventoryItems;
+    }
+    
+    public void setInventoryItems(List<InventoryItem> inventoryItems) {
+        this.inventoryItems = inventoryItems;
     }
 
     @Override

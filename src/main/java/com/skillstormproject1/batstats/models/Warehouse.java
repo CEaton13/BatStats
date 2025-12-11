@@ -1,8 +1,12 @@
 package com.skillstormproject1.batstats.models;
 
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -46,6 +50,7 @@ public class Warehouse {
 
     // Many-to-many relationship through junction table
     @OneToMany(mappedBy = "warehouse", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<WarehouseInventory> inventoryItems = new ArrayList<>();
     
 
@@ -71,11 +76,13 @@ public class Warehouse {
     }
 
     // calculation for the capacity left in warehouse
+    @JsonProperty("availableCapacity")
     public Integer getAvailableCapacity() {
         return maxCapacity - currentCapacity;
     }
     
     // calculation for the percentage of the warehouse used 
+    @JsonProperty("capacityPercentage")
     public Double getCapacityPercentage() {
         if (maxCapacity == 0) {
             return 0.0;
