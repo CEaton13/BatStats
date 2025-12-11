@@ -13,7 +13,7 @@
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-6">
-                    <h1><i class="bi bi-boxes"></i> BatStats</h1>
+                    <h1>BatStats</h1>
                     <p class="subtitle mb-0">Inventory Management System</p>
                 </div>
                 <div class="col-md-6 text-md-end mt-3 mt-md-0">
@@ -117,7 +117,180 @@
         <section id="warehouses-section" class="content-section" style="display: none;">
             <h2 class="section-title">Warehouse Management</h2>
             
+            <!-- Warehouse Form -->
+            <div class="form-section">
+                <h4 class="text-yellow mb-3">Add New Warehouse</h4>
+                <form id="warehouseForm">
+                    <input type="hidden" id="warehouseId">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="warehouseName" class="form-label">Warehouse Name</label>
+                            <input type="text" class="form-control" id="warehouseName" required placeholder="Enter name">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="warehouseLocation" class="form-label">Location</label>
+                            <input type="text" class="form-control" id="warehouseLocation" required placeholder="Enter location">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="warehouseCapacity" class="form-label">Max Capacity</label>
+                            <input type="number" class="form-control" id="warehouseCapacity" min="1" required>
+                        </div>
+                        <div class="col-md-2">
+                            <label for="warehouseStatus" class="form-label">Status</label>
+                            <select class="form-select" id="warehouseStatus">
+                                <option value="ACTIVE" selected>Active</option>
+                                <option value="INACTIVE">Inactive</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <br/>
+            <!-- Table for warehouse -->
+            <div class="table-responsive">
+                <table class="table table-secondary table-hover">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Location</th>
+                            <th>Capacity</th>
+                            <th>Utilization</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="warehousesTableBody">
+                        <!-- populated by pulling from the database -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Iventory Items Management Section -->
+        <section id="inventory-section" class="content-section" style="display: none;">
+            <h2 class="section-title">Inventory Management</h2>
             
+            <!-- Form for items -->
+            <div class="form-section">
+                <h4 class="text-yellow mb-3"><i class="bi bi-plus-circle"></i> Add New Inventory Item</h4>
+                <form id="inventoryForm">
+                    <input type="hidden" id="inventoryId">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-3">
+                            <label for="inventorySerial" class="form-label">Serial Number</label>
+                            <input type="text" class="form-control" id="inventorySerial" required placeholder="e.g., BAT-001">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inventoryProductType" class="form-label">Product Type</label>
+                            <select class="form-select" id="inventoryProductType" required>
+                                <option value="">Select...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inventoryWarehouse" class="form-label">Warehouse</label>
+                            <select class="form-select" id="inventoryWarehouse" required>
+                                <option value="">Select...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="inventoryQuantity" class="form-label">Quantity</label>
+                            <input type="number" class="form-control" id="inventoryQuantity" min="1" required>
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="inventoryLocation" class="form-label">Storage Location</label>
+                            <input type="text" class="form-control" id="inventoryLocation" placeholder="Optional">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="inventoryCondition" class="form-label">Condition</label>
+                            <select class="form-select" id="inventoryCondition">
+                                <option value="NEW">New</option>
+                                <option value="GOOD">Good</option>
+                                <option value="FAIR">Fair</option>
+                                <option value="POOR">Poor</option>
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label for="inventoryNotes" class="form-label">Notes</label>
+                            <input type="text" class="form-control" id="inventoryNotes" placeholder="Optional notes">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-bat-primary w-100">
+                                <i class="bi bi-save"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Table for Inventory -->
+            <div class="table-responsive">
+                <table class="table table-dark table-hover">
+                    <thead>
+                        <tr>
+                            <th>Serial #</th>
+                            <th>Product</th>
+                            <th>Warehouse</th>
+                            <th>Quantity</th>
+                            <th>Location</th>
+                            <th>Condition</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventoryTableBody">
+                        <!-- Database entries -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Product Type Management Section -->
+        <section id="products-section" class="content-section" style="display: none;">
+            <h2 class="section-title">Product Types</h2>
+
+            <!-- Form for Product Types -->
+            <div class="form-section">
+                <h4 class="text-yellow mb-3"><i class="bi bi-plus-circle"></i> Add New Product Type</h4>
+                <form id="productForm">
+                    <input type="hidden" id="productId">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="productName" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="productName" required placeholder="Enter name">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="productCategory" class="form-label">Category</label>
+                            <input type="text" class="form-control" id="productCategory" required placeholder="Category">
+                        </div>
+                        <div class="col-md-2">
+                            <label for="productUnit" class="form-label">Unit</label>
+                            <input type="text" class="form-control" id="productUnit" required placeholder="pack, case, box">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="productDescription" class="form-label">Description</label>
+                            <input type="text" class="form-control" id="productDescription" placeholder="Optional">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-bat-primary w-100">
+                                <i class="bi bi-save"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="card-grid" id="productsGrid">
+                <!-- Populated by JavaScript -->
+            </div>
+        </section>
+    </div>
 
     <!-- Bootstrap JS Bundle-->        
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
