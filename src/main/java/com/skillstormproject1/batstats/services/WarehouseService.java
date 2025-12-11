@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.skillstormproject1.batstats.dtos.WarehouseDTO;
+import com.skillstormproject1.batstats.exceptions.ResourceNotFoundException;
 import com.skillstormproject1.batstats.models.Warehouse;
 import com.skillstormproject1.batstats.repositories.WarehouseRepository;
 
@@ -54,7 +55,8 @@ public class WarehouseService {
         warehouse.setName(warehouseDTO.getName());
         warehouse.setLocation(warehouseDTO.getLocation());
         warehouse.setMaxCapacity(warehouseDTO.getMaxCapacity());
-        warehouse.setStatus(warehouseDTO.getStatus() != null ? warehouseDTO.getStatus() : "ACTIVE");
+        warehouse.setStatus(warehouseDTO.getStatus() != null ? 
+            warehouseDTO.getStatus() : "ACTIVE");
         warehouse.setCurrentCapacity(0);
         return warehouseRepository.save(warehouse);
     }
@@ -72,9 +74,10 @@ public class WarehouseService {
 
     public void deleteWarehouse(Integer id) {
         if (!warehouseRepository.existsById(id)) {
-            throw new ResponseStatusException(
-                HttpStatus.NOT_FOUND,"Warehouse not found with id: " + id);
+            throw new ResourceNotFoundException(
+                "Warehouse not found with id: " + id);
         }
         warehouseRepository.deleteById(id);
+        
     }
 }

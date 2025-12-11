@@ -395,7 +395,6 @@ async function loadInventoryItems() {
         
         if (currentSection === 'inventory') {
             displayInventoryItems();
-            updateFilterStats(inventoryItems.length);
         }
         
         return inventoryItems;
@@ -405,29 +404,37 @@ async function loadInventoryItems() {
     }
 }
 
-function displayInventoryItems(items = inventoryItems) {
+function displayInventoryItems() {
     const tbody = document.getElementById('inventoryTableBody');
     
-    if (items.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-grey">No inventory items found</td></tr>';
+    if (inventoryItems.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-grey">No inventory items found</td></tr>';
         return;
     }
     
     let html = '';
-    items.forEach(item => {
+    inventoryItems.forEach(item => {
+        // Display multiple locations
+        const locationsHtml = item.warehouseLocations
+            .map(loc => `<span class="badge badge-blue">${loc.warehouse.name}: ${loc.quantity}</span>`)
+            .join(' ');
+        
+        const totalQuantity = item.warehouseLocations
+            .reduce((sum, loc) => sum + loc.quantity, 0);
+        
         html += `
             <tr>
                 <td><code class="text-yellow">${item.serialNumber}</code></td>
                 <td>${item.productType.name}</td>
-                <td><span class="badge badge-blue">${item.productType.category}</span></td>
-                <td>${item.warehouse.name}</td>
-                <td><span class="badge badge-blue">${item.quantity}</span></td>
+                <td>${locationsHtml || '<span class="text-grey">No locations</span>'}</td>
+                <td><span class="badge badge-yellow">${totalQuantity}</span></td>
+                <td>${item.warehouseLocations.length} locations</td>
                 <td>
+                    <button class="btn btn-bat-action btn-sm" onclick="manageItemLocations(${item.id})">
+                        <i class="bi bi-pin-map"></i> Locations
+                    </button>
                     <button class="btn btn-bat-action btn-sm" onclick="editInventoryItem(${item.id})">
                         <i class="bi bi-pencil"></i> Edit
-                    </button>
-                    <button class="btn btn-bat-secondary btn-sm" onclick="showTransferForm(${item.id})">
-                        <i class="bi bi-arrow-left-right"></i> Transfer
                     </button>
                     <button class="btn btn-bat-danger btn-sm" onclick="deleteInventoryItem(${item.id})">
                         <i class="bi bi-trash"></i> Delete
@@ -440,14 +447,14 @@ function displayInventoryItems(items = inventoryItems) {
     tbody.innerHTML = html;
 }
 
+
+
 // create a new Inventory Item in the database
 async function saveInventoryItem() {
     const id = document.getElementById('inventoryId').value;
     const item = {
         serialNumber: document.getElementById('inventorySerial').value,
-        productType: { id: parseInt(document.getElementById('inventoryProductType').value) },
-        warehouse: { id: parseInt(document.getElementById('inventoryWarehouse').value) },
-        quantity: parseInt(document.getElementById('inventoryQuantity').value)
+        productTypeId: parseInt(document.getElementById('inventoryProductType').value)
     };
     
     try {
@@ -465,15 +472,77 @@ async function saveInventoryItem() {
             throw new Error(error);
         }
         
-        // Clear form
+        const savedItem = await response.json();
+        
+        // If creating new item, prompt to add to warehouse
+        if (!id) {
+            if (confirm('Item created! Add to a warehouse now?')) {
+                showAddToWarehouseForm(savedItem.id);
+            }
+        }
+        
         document.getElementById('inventoryForm').reset();
         document.getElementById('inventoryId').value = '';
         
         await loadInventoryItems();
-        await loadWarehouses();
         showAlert(`Inventory item ${id ? 'updated' : 'created'} successfully`, 'success');
     } catch (error) {
         console.error('Error saving inventory item:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+// add item to a certain warehouse location
+async function addItemToWarehouse(itemId, warehouseId, quantity) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/warehouse-inventory`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                inventoryItemId: itemId,
+                warehouseId: warehouseId,
+                quantity: quantity
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        
+        await loadInventoryItems();
+        await loadWarehouses();
+        showAlert('Item added to warehouse successfully', 'success');
+    } catch (error) {
+        console.error('Error adding item to warehouse:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+// transfer between warehouses
+async function transferItemBetweenWarehouses(itemId, sourceId, destId, quantity) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/warehouse-inventory/transfer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                itemId: itemId,
+                sourceWarehouseId: sourceId,
+                destinationWarehouseId: destId,
+                quantity: quantity
+            })
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        
+        await loadInventoryItems();
+        await loadWarehouses();
+        showAlert('Transfer completed successfully', 'success');
+    } catch (error) {
+        console.error('Error transferring item:', error);
         showAlert(error.message, 'danger');
     }
 }

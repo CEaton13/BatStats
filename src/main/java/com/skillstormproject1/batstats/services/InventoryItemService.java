@@ -7,16 +7,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.skillstormproject1.batstats.dtos.InventoryItemDTO;
-import com.skillstormproject1.batstats.dtos.TransferRequestDTO;
 import com.skillstormproject1.batstats.exceptions.DuplicateSerialNumberException;
 import com.skillstormproject1.batstats.exceptions.ResourceNotFoundException;
-import com.skillstormproject1.batstats.exceptions.WarehouseCapacityExceededException;
 import com.skillstormproject1.batstats.models.InventoryItem;
 import com.skillstormproject1.batstats.models.ProductType;
-import com.skillstormproject1.batstats.models.Warehouse;
 import com.skillstormproject1.batstats.repositories.InventoryItemRepository;
 import com.skillstormproject1.batstats.repositories.ProductTypeRepository;
-import com.skillstormproject1.batstats.repositories.WarehouseRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -25,14 +21,11 @@ import jakarta.transaction.Transactional;
 public class InventoryItemService {
 
     private final InventoryItemRepository inventoryItemRepository;
-    private final WarehouseRepository warehouseRepository;
     private final ProductTypeRepository productTypeRepository;
     
     public InventoryItemService(InventoryItemRepository inventoryItemRepository,
-                               WarehouseRepository warehouseRepository,
                                ProductTypeRepository productTypeRepository) {
         this.inventoryItemRepository = inventoryItemRepository;
-        this.warehouseRepository = warehouseRepository;
         this.productTypeRepository = productTypeRepository;
     }
 
@@ -47,9 +40,11 @@ public class InventoryItemService {
             new ResponseStatusException(HttpStatus.NOT_FOUND, "Iventory item not found with id: " + id));
     }
 
-    // get all items in a specific warehouse
-    public List<InventoryItem> getItemsByWarehouse(Integer warehouseId){
-        return inventoryItemRepository.findByWarehouseId(warehouseId);
+    // get by serial number
+    public InventoryItem getInventoryItemBySerialNumber(String serialNumber) {
+        return inventoryItemRepository.findBySerialNumber(serialNumber)
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Inventory item not found with serial number: " + serialNumber));
     }
 
     // find and list all items of a product type
@@ -57,6 +52,20 @@ public class InventoryItemService {
         return inventoryItemRepository.findByProductTypeId(productTypeId);
     }
     
+    // search through the items
+    public List<InventoryItem> searchItems(String searchTerm) {
+        return inventoryItemRepository.searchItems(searchTerm);
+    }
+
+    // get items from multiple warehouses
+    public List<InventoryItem> getItemsInMultipleWarehouses() {
+        return inventoryItemRepository.findItemsInMultipleWarehouses();
+    }
+
+    // get the items without using the location 
+    public List<InventoryItem> getItemsWithoutLocation() {
+        return inventoryItemRepository.findItemsWithoutLocation();
+    }
     /**
      * createInventoryItem - set all params for item like product type then put it into a warehouse save 
      * updateInventoryItem - update quantity which will affect warehouse capacity
@@ -64,99 +73,45 @@ public class InventoryItemService {
      */
     
     public InventoryItem createInventoryItem(InventoryItemDTO itemDTO) {
+        // Check for duplicate serial number
         if (inventoryItemRepository.existsBySerialNumber(itemDTO.getSerialNumber())) {
             throw new DuplicateSerialNumberException(
                 "Item with serial number " + itemDTO.getSerialNumber() + " already exists");
         }
-        
-        Warehouse warehouse = warehouseRepository.findById(itemDTO.getWarehouseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Warehouse not found with id: " + itemDTO.getWarehouseId()));
-        
+                // Get product type
         ProductType productType = productTypeRepository.findById(itemDTO.getProductTypeId())
-            .orElseThrow(() -> new ResourceNotFoundException("Product type not found with id: " + itemDTO.getProductTypeId()));
+            .orElseThrow(() -> new ResourceNotFoundException(
+                "Product type not found with id: " + itemDTO.getProductTypeId()));
         
-        validateWarehouseCapacity(warehouse, itemDTO.getQuantity());
-        
+        // Create item (much simpler now!)
         InventoryItem item = new InventoryItem();
         item.setSerialNumber(itemDTO.getSerialNumber());
         item.setProductType(productType);
-        item.setWarehouse(warehouse);
-        item.setQuantity(itemDTO.getQuantity());
-
         
-        InventoryItem savedItem = inventoryItemRepository.save(item);
-        
-        warehouse.setCurrentCapacity(warehouse.getCurrentCapacity() + itemDTO.getQuantity());
-        warehouseRepository.save(warehouse);
-        
-        return savedItem;
+        return inventoryItemRepository.save(item);
     }
     
     public InventoryItem updateInventoryItem(Integer id, InventoryItemDTO itemDTO) {
         InventoryItem existing = getInventoryItemById(id);
-        Warehouse currentWarehouse = existing.getWarehouse();
         
-        int quantityDifference = itemDTO.getQuantity() - existing.getQuantity();
-        
-        if (quantityDifference > 0) {
-            validateWarehouseCapacity(currentWarehouse, quantityDifference);
+        // Only product type can be updated
+        if (itemDTO.getProductTypeId() != null) {
+            ProductType productType = productTypeRepository.findById(itemDTO.getProductTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Product type not found with id: " + itemDTO.getProductTypeId()));
+            existing.setProductType(productType);
         }
         
-        existing.setQuantity(itemDTO.getQuantity());
-
-        InventoryItem updatedItem = inventoryItemRepository.save(existing);
-        
-        currentWarehouse.setCurrentCapacity(currentWarehouse.getCurrentCapacity() + quantityDifference);
-        warehouseRepository.save(currentWarehouse);
-        
-        return updatedItem;
+        return inventoryItemRepository.save(existing);
     }
     
     
     public void deleteInventoryItem(Integer id) {
-        InventoryItem item = getInventoryItemById(id);
-        Warehouse warehouse = item.getWarehouse();
-        
-        warehouse.setCurrentCapacity(warehouse.getCurrentCapacity() - item.getQuantity());
-        warehouseRepository.save(warehouse);
+        if (!inventoryItemRepository.existsById(id)) {
+            throw new ResourceNotFoundException(
+                "Inventory item not found with id: " + id);
+        }
         
         inventoryItemRepository.deleteById(id);
-    }
-
-    public InventoryItem transferItem(TransferRequestDTO transferDTO) {
-        InventoryItem item = getInventoryItemById(transferDTO.getItemId());
-        
-        Warehouse sourceWarehouse = warehouseRepository.findById(transferDTO.getSourceWarehouseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Source warehouse not found"));
-        
-        Warehouse destinationWarehouse = warehouseRepository.findById(transferDTO.getDestinationWarehouseId())
-            .orElseThrow(() -> new ResourceNotFoundException("Destination warehouse not found"));
-        
-        if (!item.getWarehouse().getId().equals(sourceWarehouse.getId())) {
-            throw new IllegalArgumentException("Item is not in the specified source warehouse");
-        }
-        
-        validateWarehouseCapacity(destinationWarehouse, transferDTO.getQuantity());
-        
-        sourceWarehouse.setCurrentCapacity(sourceWarehouse.getCurrentCapacity() - transferDTO.getQuantity());
-        warehouseRepository.save(sourceWarehouse);
-        
-        destinationWarehouse.setCurrentCapacity(destinationWarehouse.getCurrentCapacity() + transferDTO.getQuantity());
-        warehouseRepository.save(destinationWarehouse);
-        
-        item.setWarehouse(destinationWarehouse);
-        
-        return inventoryItemRepository.save(item);
-    }
-
-    
-    // helper method to make sure that the warehouse has the avaliable capacity or throw error in createInventoryItem
-    private void validateWarehouseCapacity(Warehouse warehouse, Integer quantity) {
-        int availableCapacity = warehouse.getAvailableCapacity();
-        if (quantity > availableCapacity) {
-            throw new WarehouseCapacityExceededException(
-                String.format("Warehouse '%s' has insufficient capacity. Available: %d, Required: %d",
-                    warehouse.getName(), availableCapacity, quantity));
-        }
     }
 }

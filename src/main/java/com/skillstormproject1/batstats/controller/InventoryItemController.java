@@ -12,10 +12,10 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.skillstormproject1.batstats.dtos.InventoryItemDTO;
-import com.skillstormproject1.batstats.dtos.TransferRequestDTO;
 import com.skillstormproject1.batstats.models.InventoryItem;
 import com.skillstormproject1.batstats.services.InventoryItemService;
 
@@ -33,25 +33,19 @@ public class InventoryItemController {
    // get a list of all inventory items
    @GetMapping
     public ResponseEntity<List<InventoryItem>> getAllInventoryItems() {
-        return ResponseEntity.ok(inventoryItemService.getAllInventoryItems());
+      return ResponseEntity.ok(inventoryItemService.getAllInventoryItems());
    }
 
    // get to find inventory by id
    @GetMapping("/{id}")
    public ResponseEntity<InventoryItem> getInventoryItemById(@PathVariable Integer id) {
-         return ResponseEntity.ok(inventoryItemService.getInventoryItemById(id));
+      return ResponseEntity.ok(inventoryItemService.getInventoryItemById(id));
    }
    
-   // get finds all items in a specific warehouse
-   @GetMapping("/warehouse/{warehouseId}")
-   public ResponseEntity<List<InventoryItem>> getItemsByWarehouse(@PathVariable Integer warehouseId) {
-      return ResponseEntity.ok(inventoryItemService.getItemsByWarehouse(warehouseId));
-   }
-
-   // get will find items by product type
-   @GetMapping("/product-type/{productTypeId}")
-   public ResponseEntity<List<InventoryItem>> getItemsByProductType(@PathVariable Integer productTypeId) {
-      return ResponseEntity.ok(inventoryItemService.getItemsByProductType(productTypeId));
+   // search items 
+   @GetMapping("/search")
+   public ResponseEntity<List<InventoryItem>> searchItems(@RequestParam String term) {
+      return ResponseEntity.ok(inventoryItemService.searchItems(term));
    }
 
    /**
@@ -62,25 +56,24 @@ public class InventoryItemController {
     */
 
    @PostMapping
-    public ResponseEntity<InventoryItem> createInventoryItem(@RequestBody InventoryItemDTO itemDTO) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-            .body(inventoryItemService.createInventoryItem(itemDTO));
+    public ResponseEntity<InventoryItem> createItem(@RequestBody InventoryItemDTO dto) {
+         InventoryItem created = inventoryItemService.createInventoryItem(dto);
+      return ResponseEntity.status(HttpStatus.CREATED).body(created);
    }
-
+   
    @PutMapping("/{id}")
-    public ResponseEntity<InventoryItem> updateInventoryItem(@PathVariable Integer id, @RequestBody InventoryItemDTO itemDTO) {
-        return ResponseEntity.ok(inventoryItemService.updateInventoryItem(id, itemDTO));
+    public ResponseEntity<InventoryItem> updateItem(@PathVariable Integer id, @RequestBody InventoryItemDTO dto) {
+      return ResponseEntity.ok(inventoryItemService.updateInventoryItem(id, dto));
    }
 
    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteInventoryItem(@PathVariable Integer id) {
-        inventoryItemService.deleteInventoryItem(id);
-        return ResponseEntity.noContent().build();
+   public ResponseEntity<Void> deleteItem(@PathVariable Integer id) {
+         inventoryItemService.deleteInventoryItem(id);
+      return ResponseEntity.noContent().build();
    }
 
-   @PostMapping("/transfer")
-    public ResponseEntity<InventoryItem> transferItem(@RequestBody TransferRequestDTO transferDTO) {
-        return ResponseEntity.ok(inventoryItemService.transferItem(transferDTO));
+   @GetMapping("/multi-location")
+    public ResponseEntity<List<InventoryItem>> getMultiLocationItems() {
+      return ResponseEntity.ok(inventoryItemService.getItemsInMultipleWarehouses());
    }
-
 }

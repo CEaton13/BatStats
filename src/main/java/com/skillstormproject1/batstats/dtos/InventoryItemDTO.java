@@ -1,21 +1,22 @@
 package com.skillstormproject1.batstats.dtos;
 
+import java.util.ArrayList;
+import java.util.List;
 
 public class InventoryItemDTO {
     
     private String serialNumber;
     private Integer productTypeId;
-    private Integer warehouseId;
-    private Integer quantity;
+
+    // list the warehouse locations get mapping
+    private List<WarehouseLocationDTO> locations = new ArrayList<>();
     
     public InventoryItemDTO() {
     }
 
-    public InventoryItemDTO(String serialNumber, Integer productTypeId, Integer warehouseId, Integer quantity) {
+    public InventoryItemDTO(String serialNumber, Integer productTypeId) {
         this.serialNumber = serialNumber;
         this.productTypeId = productTypeId;
-        this.warehouseId = warehouseId;
-        this.quantity = quantity;
     }
 
     public String getSerialNumber() {
@@ -34,20 +35,12 @@ public class InventoryItemDTO {
         this.productTypeId = productTypeId;
     }
 
-    public Integer getWarehouseId() {
-        return warehouseId;
+    public List<WarehouseLocationDTO> getLocations() {
+        return locations;
     }
 
-    public void setWarehouseId(Integer warehouseId) {
-        this.warehouseId = warehouseId;
-    }
-
-    public Integer getQuantity() {
-        return quantity;
-    }
-
-    public void setQuantity(Integer quantity) {
-        this.quantity = quantity;
+    public void setLocations(List<WarehouseLocationDTO> locations) {
+        this.locations = locations;
     }
 
     @Override
@@ -55,9 +48,8 @@ public class InventoryItemDTO {
         final int prime = 31;
         int result = 1;
         result = prime * result + ((serialNumber == null) ? 0 : serialNumber.hashCode());
-        result = prime * result + productTypeId;
-        result = prime * result + warehouseId;
-        result = prime * result + ((quantity == null) ? 0 : quantity.hashCode());
+        result = prime * result + ((productTypeId == null) ? 0 : productTypeId.hashCode());
+        result = prime * result + ((locations == null) ? 0 : locations.hashCode());
         return result;
     }
 
@@ -75,21 +67,23 @@ public class InventoryItemDTO {
                 return false;
         } else if (!serialNumber.equals(other.serialNumber))
             return false;
-        if (productTypeId != other.productTypeId)
-            return false;
-        if (warehouseId != other.warehouseId)
-            return false;
-        if (quantity == null) {
-            if (other.quantity != null)
+        if (productTypeId == null) {
+            if (other.productTypeId != null)
                 return false;
-        } else if (!quantity.equals(other.quantity))
+        } else if (!productTypeId.equals(other.productTypeId))
+            return false;
+        if (locations == null) {
+            if (other.locations != null)
+                return false;
+        } else if (!locations.equals(other.locations))
             return false;
         return true;
     }
 
     @Override
     public String toString() {
-        return "InventoryItemDTO [serialNumber=" + serialNumber + ", productTypeId=" + productTypeId + ", warehouseId="
-                + warehouseId + ", quantity=" + quantity + "]";
+        return "InventoryItemDTO [serialNumber=" + serialNumber + ", productTypeId=" + productTypeId + ", locations="
+                + locations + "]";
     }
+
 }
