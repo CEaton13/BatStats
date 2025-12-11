@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.skillstormproject1.batstats.dtos.InventoryItemDTO;
+import com.skillstormproject1.batstats.dtos.TransferRequestDTO;
 import com.skillstormproject1.batstats.exceptions.DuplicateSerialNumberException;
 import com.skillstormproject1.batstats.exceptions.ResourceNotFoundException;
 import com.skillstormproject1.batstats.exceptions.WarehouseCapacityExceededException;
@@ -120,6 +121,32 @@ public class InventoryItemService {
         warehouseRepository.save(warehouse);
         
         inventoryItemRepository.deleteById(id);
+    }
+
+    public InventoryItem transferItem(TransferRequestDTO transferDTO) {
+        InventoryItem item = getInventoryItemById(transferDTO.getItemId());
+        
+        Warehouse sourceWarehouse = warehouseRepository.findById(transferDTO.getSourceWarehouseId())
+            .orElseThrow(() -> new ResourceNotFoundException("Source warehouse not found"));
+        
+        Warehouse destinationWarehouse = warehouseRepository.findById(transferDTO.getDestinationWarehouseId())
+            .orElseThrow(() -> new ResourceNotFoundException("Destination warehouse not found"));
+        
+        if (!item.getWarehouse().getId().equals(sourceWarehouse.getId())) {
+            throw new IllegalArgumentException("Item is not in the specified source warehouse");
+        }
+        
+        validateWarehouseCapacity(destinationWarehouse, transferDTO.getQuantity());
+        
+        sourceWarehouse.setCurrentCapacity(sourceWarehouse.getCurrentCapacity() - transferDTO.getQuantity());
+        warehouseRepository.save(sourceWarehouse);
+        
+        destinationWarehouse.setCurrentCapacity(destinationWarehouse.getCurrentCapacity() + transferDTO.getQuantity());
+        warehouseRepository.save(destinationWarehouse);
+        
+        item.setWarehouse(destinationWarehouse);
+        
+        return inventoryItemRepository.save(item);
     }
 
     
