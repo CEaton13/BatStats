@@ -181,36 +181,24 @@
             <h2 class="section-title">Inventory Management</h2>
             
             <!-- Filter and Search Form -->
-            <div class="form-section">
-                <h4 class="text-yellow mb-3"><i class="bi bi-search"></i> Search & Filter Inventory</h4>
-                <div class="row g-3 mb-3">
-                    <div class="col-md-4">
-                        <label for="inventorySearch" class="form-label">Search</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control" id="inventorySearch" 
-                                placeholder="Search by serial, product, category, or warehouse...">
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="filterWarehouse" class="form-label">Filter by Warehouse</label>
-                        <select class="form-select" id="filterWarehouse">
-                            <option value="">All Warehouses</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label for="filterProduct" class="form-label">Filter by Product</label>
-                        <select class="form-select" id="filterProduct">
-                            <option value="">All Products</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-bat-secondary w-100" id="clearFilters">
-                            <i class="bi bi-x-circle"></i> Clear Filters
-                        </button>
-                    </div>
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <label for="inventorySearch" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="inventorySearch" 
+                        placeholder="Search by serial number or product name...">
                 </div>
-                <div class="text-grey small" id="filterStats">Showing 0 of 0 items</div>
+                <div class="col-md-4">
+                    <label for="warehouseFilter" class="form-label">Filter by Warehouse</label>
+                    <select class="form-select" id="warehouseFilter">
+                        <option value="">All Warehouses</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label for="productTypeFilter" class="form-label">Filter by Product Type</label>
+                    <select class="form-select" id="productTypeFilter">
+                        <option value="">All Product Types</option>
+                    </select>
+                </div>
             </div>
 
             <!-- Form for adding items -->
@@ -290,9 +278,9 @@
                         <tr>
                             <th>Serial #</th>
                             <th>Product</th>
-                            <th>Category</th>
-                            <th>Warehouse</th>
-                            <th>Quantity</th>
+                            <th>Locations</th>
+                            <th>Total Qty</th>
+                            <th>Locations</th>
                             <th>Actions</th>
                         </tr>
                     </thead>

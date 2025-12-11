@@ -4,6 +4,7 @@ const API_BASE_URL = 'http://localhost:8080/api';
 let currentSection = 'dashboard';
 let warehouses = [];
 let inventoryItems = [];
+let allInventoryItems = [];
 let productTypes = [];
 
 // Initialize application
@@ -62,6 +63,7 @@ function showSection(sectionName) {
             loadInventoryItems();
             populateWarehouseSelects();
             populateProductTypeSelects();
+            populateFilters();
             break;
         case 'products':
             loadProductTypes();
@@ -72,22 +74,30 @@ function showSection(sectionName) {
 // setting up forms to submit
 function setupForms() {
     // Warehouse form
-    document.getElementById('warehouseForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        await saveWarehouse();
-    });
+    const warehouseForm = document.getElementById('warehouseForm');
+    if (warehouseForm) {
+        warehouseForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveWarehouse();
+        });
+    }
     
     // Inventory form
-    document.getElementById('inventoryForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        await saveInventoryItem();
-    });
-    
+    const inventoryForm = document.getElementById('inventoryForm');
+    if (inventoryForm) {
+        inventoryForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveInventoryItem();
+        });
+    }
     // Product form
-    document.getElementById('productForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        await saveProductType();
-    });
+    const productForm = document.getElementById('productForm');
+    if (productForm) {
+        productForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await saveProductType();
+        });
+    }
     // Transfer Request Form
     document.getElementById('transferForm').addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -127,18 +137,18 @@ function setupSearchAndFilter() {
         });
     }
     
-    // Filter dropdowns
-    const warehouseFilter = document.getElementById('filterWarehouse');
-    const productFilter = document.getElementById('filterProduct');
-    
+    // Warehouse filter
+    const warehouseFilter = document.getElementById('warehouseFilter');
     if (warehouseFilter) {
-        warehouseFilter.addEventListener('change', function() {
+        warehouseFilter.addEventListener('change', function(e) {
             filterInventoryItems();
         });
     }
     
-    if (productFilter) {
-        productFilter.addEventListener('change', function() {
+    // Product type filter
+    const productTypeFilter = document.getElementById('productTypeFilter');
+    if (productTypeFilter) {
+        productTypeFilter.addEventListener('change', function(e) {
             filterInventoryItems();
         });
     }
@@ -262,7 +272,7 @@ async function loadWarehouses() {
         }
         
         populateWarehouseSelects();
-        populateFilterSelects();
+        //populateFilterSelects();
         return warehouses;
     } catch (error) {
         console.error('Error loading warehouses:', error);
@@ -394,8 +404,9 @@ async function loadInventoryItems() {
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        inventoryItems = await response.json();
-        
+        allInventoryItems = await response.json();
+        inventoryItems = [...allInventoryItems];
+
         console.log('Loaded inventory items:', inventoryItems); // Debug log
         
         if (currentSection === 'inventory') {
@@ -480,6 +491,7 @@ async function manageItemLocations(itemId) {
     alert('Location management UI - see implementation details in guide');
 }
 
+
 // create a new Inventory Item in the database
 async function saveInventoryItem() {
     const id = document.getElementById('inventoryId').value;
@@ -503,19 +515,11 @@ async function saveInventoryItem() {
             throw new Error(error);
         }
         
-        const savedItem = await response.json();
-        
-        // If creating new item, prompt to add to warehouse
-        if (!id) {
-            if (confirm('Item created! Add to a warehouse now?')) {
-                showAddToWarehouseForm(savedItem.id);
-            }
-        }
-        
         document.getElementById('inventoryForm').reset();
         document.getElementById('inventoryId').value = '';
         
         await loadInventoryItems();
+        await loadWarehouses();
         showAlert(`Inventory item ${id ? 'updated' : 'created'} successfully`, 'success');
     } catch (error) {
         console.error('Error saving inventory item:', error);
@@ -523,77 +527,17 @@ async function saveInventoryItem() {
     }
 }
 
-// add item to a certain warehouse location
-async function addItemToWarehouse(itemId, warehouseId, quantity) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/warehouse-inventory`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                inventoryItemId: itemId,
-                warehouseId: warehouseId,
-                quantity: quantity
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(error);
-        }
-        
-        await loadInventoryItems();
-        await loadWarehouses();
-        showAlert('Item added to warehouse successfully', 'success');
-    } catch (error) {
-        console.error('Error adding item to warehouse:', error);
-        showAlert(error.message, 'danger');
-    }
-}
-
-// transfer between warehouses
-async function transferItemBetweenWarehouses(itemId, sourceId, destId, quantity) {
-    try {
-        const response = await fetch(`${API_BASE_URL}/warehouse-inventory/transfer`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                itemId: itemId,
-                sourceWarehouseId: sourceId,
-                destinationWarehouseId: destId,
-                quantity: quantity
-            })
-        });
-        
-        if (!response.ok) {
-            const error = await response.text();
-            throw new Error(error);
-        }
-        
-        await loadInventoryItems();
-        await loadWarehouses();
-        showAlert('Transfer completed successfully', 'success');
-    } catch (error) {
-        console.error('Error transferring item:', error);
-        showAlert(error.message, 'danger');
-    }
-}
-
-// update inventory item
 function editInventoryItem(id) {
-    const item = inventoryItems.find(i => i.id === id);
+    const item = allInventoryItems.find(i => i.id === id);
     if (!item) return;
     
     document.getElementById('inventoryId').value = item.id;
     document.getElementById('inventorySerial').value = item.serialNumber;
-    document.getElementById('inventoryProductType').value = item.productType.id;
-    document.getElementById('inventoryWarehouse').value = item.warehouse.id;
-    document.getElementById('inventoryQuantity').value = item.quantity;
+    document.getElementById('inventoryProductType').value = item.productType?.id || '';
     
-    // Scroll to form
     document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
 }
 
-// delete inventory item
 async function deleteInventoryItem(id) {
     if (!confirm('Are you sure you want to delete this inventory item?')) return;
     
@@ -615,38 +559,68 @@ async function deleteInventoryItem(id) {
 
 // filter for inventory items based on the criteria passed
 function filterInventoryItems() {
-    const searchTerm = document.getElementById('inventorySearch').value.toLowerCase();
-    const warehouseFilter = document.getElementById('filterWarehouse').value;
-    const productFilter = document.getElementById('filterProduct').value;
+    const searchTerm = document.getElementById('inventorySearch')?.value.toLowerCase() || '';
+    const warehouseFilter = document.getElementById('warehouseFilter')?.value || '';
+    const productTypeFilter = document.getElementById('productTypeFilter')?.value || '';
     
-    let filteredItems = [...inventoryItems];
+    // Start with all items
+    let filtered = [...allInventoryItems];
     
-    // Apply search filter
+    // Apply search term (searches serial number and product name)
     if (searchTerm) {
-        filteredItems = filteredItems.filter(item => {
-            return item.serialNumber.toLowerCase().includes(searchTerm) ||
-                   item.productType.name.toLowerCase().includes(searchTerm) ||
-                   item.productType.category.toLowerCase().includes(searchTerm) ||
-                   item.warehouse.name.toLowerCase().includes(searchTerm);
+        filtered = filtered.filter(item => {
+            const serialMatch = item.serialNumber?.toLowerCase().includes(searchTerm);
+            const productMatch = item.productType?.name?.toLowerCase().includes(searchTerm);
+            return serialMatch || productMatch;
         });
     }
     
     // Apply warehouse filter
     if (warehouseFilter) {
-        filteredItems = filteredItems.filter(item => 
-            item.warehouse.id === parseInt(warehouseFilter)
-        );
+        const warehouseId = parseInt(warehouseFilter);
+        filtered = filtered.filter(item => {
+            // Check if item exists in the selected warehouse
+            return item.warehouseLocations?.some(loc => loc.warehouse?.id === warehouseId);
+        });
     }
     
     // Apply product type filter
-    if (productFilter) {
-        filteredItems = filteredItems.filter(item => 
-            item.productType.id === parseInt(productFilter)
-        );
+    if (productTypeFilter) {
+        const productTypeId = parseInt(productTypeFilter);
+        filtered = filtered.filter(item => {
+            return item.productType?.id === productTypeId;
+        });
     }
     
-    displayInventoryItems(filteredItems);
-    updateFilterStats(filteredItems.length);
+    // Update display with filtered items
+    inventoryItems = filtered;
+    displayInventoryItems();
+}
+
+function populateFilters() {
+    // Populate warehouse filter
+    const warehouseFilter = document.getElementById('warehouseFilter');
+    if (warehouseFilter) {
+        warehouseFilter.innerHTML = '<option value="">All Warehouses</option>';
+        warehouses.forEach(warehouse => {
+            const option = document.createElement('option');
+            option.value = warehouse.id;
+            option.textContent = warehouse.name;
+            warehouseFilter.appendChild(option);
+        });
+    }
+    
+    // Populate product type filter
+    const productTypeFilter = document.getElementById('productTypeFilter');
+    if (productTypeFilter) {
+        productTypeFilter.innerHTML = '<option value="">All Product Types</option>';
+        productTypes.forEach(productType => {
+            const option = document.createElement('option');
+            option.value = productType.id;
+            option.textContent = `${productType.name} (${productType.category})`;
+            productTypeFilter.appendChild(option);
+        });
+    }
 }
 
 function updateFilterStats(count) {
@@ -749,7 +723,6 @@ async function loadProductTypes() {
         }
         
         populateProductTypeSelects();
-        populateFilterSelects();
         return productTypes;
     } catch (error) {
         console.error('Error loading product types:', error);
@@ -773,6 +746,7 @@ function displayProductTypes() {
                     <h5 class="text-yellow mb-0">${product.name}</h5>
                     <span class="badge badge-blue">${product.category}</span>
                 </div>
+                <p class="text-grey mb-3">${product.description || 'No description available'}</p>
                 <p class="mb-3"><small class="text-grey"><i class="bi bi-box"></i> Unit: ${product.unitOfMeasure}</small></p>
                 <div class="d-flex gap-2">
                     <button class="btn btn-bat-action btn-sm flex-fill" onclick="editProductType(${product.id})">
@@ -795,6 +769,7 @@ async function saveProductType() {
         name: document.getElementById('productName').value,
         category: document.getElementById('productCategory').value,
         unitOfMeasure: document.getElementById('productUnit').value,
+        description: document.getElementById('productDescription').value
     };
     
     try {
@@ -809,7 +784,6 @@ async function saveProductType() {
         
         if (!response.ok) throw new Error('Failed to save product type');
         
-        // Clear form
         document.getElementById('productForm').reset();
         document.getElementById('productId').value = '';
         
@@ -829,8 +803,8 @@ function editProductType(id) {
     document.getElementById('productName').value = product.name;
     document.getElementById('productCategory').value = product.category;
     document.getElementById('productUnit').value = product.unitOfMeasure;
+    document.getElementById('productDescription').value = product.description || '';
     
-    // Scroll to form
     document.getElementById('productForm').scrollIntoView({ behavior: 'smooth' });
 }
 
@@ -863,7 +837,7 @@ function populateWarehouseSelects() {
     warehouses.forEach(warehouse => {
         const option = document.createElement('option');
         option.value = warehouse.id;
-        option.textContent = `${warehouse.name} (Available: ${warehouse.availableCapacity})`;
+        option.textContent = `${warehouse.name} (Available: ${warehouse.availableCapacity || 0})`;
         select.appendChild(option);
     });
     
