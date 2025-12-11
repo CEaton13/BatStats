@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     setupNavigation();
     loadDashboard();
     setupForms();
+    setupSearchAndFilter();
 });
 
 
@@ -87,8 +88,72 @@ function setupForms() {
         e.preventDefault();
         await saveProductType();
     });
+    // Transfer Request Form
+    document.getElementById('transferForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        await transferInventoryItem();
+    });
 }
 
+// Alerts to show if functions properly updated or failed
+function showAlert(message, type = 'info') {
+    const alertHTML = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-circle' : 'info-circle'}"></i>
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    const container = document.querySelector('.container');
+    const alertDiv = document.createElement('div');
+    alertDiv.innerHTML = alertHTML;
+    container.insertBefore(alertDiv.firstElementChild, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        const alert = container.querySelector('.alert');
+        if (alert) alert.remove();
+    }, 5000);
+}
+
+// getting search filter views setup
+function setupSearchAndFilter() {
+    // Search input
+    const searchInput = document.getElementById('inventorySearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            filterInventoryItems();
+        });
+    }
+    
+    // Filter dropdowns
+    const warehouseFilter = document.getElementById('filterWarehouse');
+    const productFilter = document.getElementById('filterProduct');
+    
+    if (warehouseFilter) {
+        warehouseFilter.addEventListener('change', function() {
+            filterInventoryItems();
+        });
+    }
+    
+    if (productFilter) {
+        productFilter.addEventListener('change', function() {
+            filterInventoryItems();
+        });
+    }
+    
+    // Clear filters button
+    const clearFiltersBtn = document.getElementById('clearFilters');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            document.getElementById('inventorySearch').value = '';
+            document.getElementById('filterWarehouse').value = '';
+            document.getElementById('filterProduct').value = '';
+            filterInventoryItems();
+        });
+    }
+}
 
 // DASHBOARD
 
@@ -102,7 +167,7 @@ async function loadDashboard() {
         
         updateDashboardStats();
         displayWarehouseCapacity();
-        //displayAlerts();
+        displayAlerts();
     } catch (error) {
         console.error('Error loading dashboard:', error);
         showAlert('Failed to load dashboard data', 'danger');
@@ -152,6 +217,38 @@ function displayWarehouseCapacity() {
     container.innerHTML = html;
 }
 
+function displayAlerts() {
+    const container = document.getElementById('alertsList');
+    const criticalWarehouses = warehouses.filter(w => w.capacityPercentage >= 90);
+    const warningWarehouses = warehouses.filter(w => w.capacityPercentage >= 75 && w.capacityPercentage < 90);
+    
+    if (criticalWarehouses.length === 0 && warningWarehouses.length === 0) {
+        container.innerHTML = '<p class="text-grey small">No alerts at this time</p>';
+        return;
+    }
+    
+    let html = '';
+    
+    criticalWarehouses.forEach(w => {
+        html += `
+            <div class="alert alert-danger py-2 px-3 mb-2">
+                <small><i class="bi bi-exclamation-triangle-fill"></i> 
+                <strong>${w.name}</strong> at ${w.capacityPercentage.toFixed(1)}%</small>
+            </div>
+        `;
+    });
+    
+    warningWarehouses.forEach(w => {
+        html += `
+            <div class="alert alert-warning py-2 px-3 mb-2">
+                <small><i class="bi bi-exclamation-circle-fill"></i> 
+                <strong>${w.name}</strong> at ${w.capacityPercentage.toFixed(1)}%</small>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
 
 
 // Warehouses
@@ -165,6 +262,7 @@ async function loadWarehouses() {
         }
         
         populateWarehouseSelects();
+        populateFilterSelects();
         return warehouses;
     } catch (error) {
         console.error('Error loading warehouses:', error);
@@ -297,6 +395,7 @@ async function loadInventoryItems() {
         
         if (currentSection === 'inventory') {
             displayInventoryItems();
+            updateFilterStats(inventoryItems.length);
         }
         
         return inventoryItems;
@@ -306,25 +405,29 @@ async function loadInventoryItems() {
     }
 }
 
-function displayInventoryItems() {
+function displayInventoryItems(items = inventoryItems) {
     const tbody = document.getElementById('inventoryTableBody');
     
-    if (inventoryItems.length === 0) {
+    if (items.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="text-center text-grey">No inventory items found</td></tr>';
         return;
     }
     
     let html = '';
-    inventoryItems.forEach(item => {
+    items.forEach(item => {
         html += `
             <tr>
                 <td><code class="text-yellow">${item.serialNumber}</code></td>
                 <td>${item.productType.name}</td>
+                <td><span class="badge badge-blue">${item.productType.category}</span></td>
                 <td>${item.warehouse.name}</td>
                 <td><span class="badge badge-blue">${item.quantity}</span></td>
                 <td>
                     <button class="btn btn-bat-action btn-sm" onclick="editInventoryItem(${item.id})">
                         <i class="bi bi-pencil"></i> Edit
+                    </button>
+                    <button class="btn btn-bat-secondary btn-sm" onclick="showTransferForm(${item.id})">
+                        <i class="bi bi-arrow-left-right"></i> Transfer
                     </button>
                     <button class="btn btn-bat-danger btn-sm" onclick="deleteInventoryItem(${item.id})">
                         <i class="bi bi-trash"></i> Delete
@@ -333,6 +436,8 @@ function displayInventoryItems() {
             </tr>
         `;
     });
+    
+    tbody.innerHTML = html;
 }
 
 // create a new Inventory Item in the database
@@ -408,6 +513,130 @@ async function deleteInventoryItem(id) {
     }
 }
 
+// filter for inventory items based on the criteria passed
+function filterInventoryItems() {
+    const searchTerm = document.getElementById('inventorySearch').value.toLowerCase();
+    const warehouseFilter = document.getElementById('filterWarehouse').value;
+    const productFilter = document.getElementById('filterProduct').value;
+    
+    let filteredItems = [...inventoryItems];
+    
+    // Apply search filter
+    if (searchTerm) {
+        filteredItems = filteredItems.filter(item => {
+            return item.serialNumber.toLowerCase().includes(searchTerm) ||
+                   item.productType.name.toLowerCase().includes(searchTerm) ||
+                   item.productType.category.toLowerCase().includes(searchTerm) ||
+                   item.warehouse.name.toLowerCase().includes(searchTerm);
+        });
+    }
+    
+    // Apply warehouse filter
+    if (warehouseFilter) {
+        filteredItems = filteredItems.filter(item => 
+            item.warehouse.id === parseInt(warehouseFilter)
+        );
+    }
+    
+    // Apply product type filter
+    if (productFilter) {
+        filteredItems = filteredItems.filter(item => 
+            item.productType.id === parseInt(productFilter)
+        );
+    }
+    
+    displayInventoryItems(filteredItems);
+    updateFilterStats(filteredItems.length);
+}
+
+function updateFilterStats(count) {
+    const statsElement = document.getElementById('filterStats');
+    if (statsElement) {
+        statsElement.textContent = `Showing ${count} of ${inventoryItems.length} items`;
+    }
+}
+
+// show the transfer form 
+function showTransferForm(itemId) {
+    const item = inventoryItems.find(i => i.id === itemId);
+    if (!item) return;
+    
+    // Set transfer form values
+    document.getElementById('transferItemId').value = item.id;
+    document.getElementById('transferItemName').textContent = `${item.productType.name} (${item.serialNumber})`;
+    document.getElementById('transferCurrentWarehouse').textContent = item.warehouse.name;
+    document.getElementById('transferCurrentQuantity').textContent = item.quantity;
+    document.getElementById('transferSourceWarehouse').value = item.warehouse.id;
+    document.getElementById('transferQuantity').max = item.quantity;
+    document.getElementById('transferQuantity').value = item.quantity;
+    
+    // Populate destination warehouse dropdown (exclude current warehouse)
+    const destSelect = document.getElementById('transferDestinationWarehouse');
+    destSelect.innerHTML = '<option value="">Select destination warehouse...</option>';
+    
+    warehouses.forEach(warehouse => {
+        if (warehouse.id !== item.warehouse.id && warehouse.status === 'ACTIVE') {
+            const option = document.createElement('option');
+            option.value = warehouse.id;
+            option.textContent = `${warehouse.name} (Available: ${warehouse.availableCapacity})`;
+            destSelect.appendChild(option);
+        }
+    });
+    
+    // Show transfer section and scroll to it
+    document.getElementById('transferSection').style.display = 'block';
+    document.getElementById('transferSection').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelTransfer() {
+    document.getElementById('transferForm').reset();
+    document.getElementById('transferSection').style.display = 'none';
+    document.getElementById('transferItemId').value = '';
+}
+
+async function transferInventoryItem() {
+    const itemId = parseInt(document.getElementById('transferItemId').value);
+    const sourceWarehouseId = parseInt(document.getElementById('transferSourceWarehouse').value);
+    const destinationWarehouseId = parseInt(document.getElementById('transferDestinationWarehouse').value);
+    const quantity = parseInt(document.getElementById('transferQuantity').value);
+    
+    if (!destinationWarehouseId) {
+        showAlert('Please select a destination warehouse', 'warning');
+        return;
+    }
+    
+    const transferRequest = {
+        itemId: itemId,
+        sourceWarehouseId: sourceWarehouseId,
+        destinationWarehouseId: destinationWarehouseId,
+        quantity: quantity
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/inventory/transfer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(transferRequest)
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        
+        // Clear form and hide section
+        cancelTransfer();
+        
+        // Reload data
+        await loadInventoryItems();
+        await loadWarehouses();
+        
+        showAlert('Item transferred successfully', 'success');
+    } catch (error) {
+        console.error('Error transferring item:', error);
+        showAlert(error.message, 'danger');
+    }
+}
 
 // Product Type 
 async function loadProductTypes() {
@@ -420,6 +649,7 @@ async function loadProductTypes() {
         }
         
         populateProductTypeSelects();
+        populateFilterSelects();
         return productTypes;
     } catch (error) {
         console.error('Error loading product types:', error);
@@ -555,6 +785,39 @@ function populateProductTypeSelects() {
     });
     
     if (currentValue) select.value = currentValue;
+}
+
+function populateFilterSelects() {
+    // Populate warehouse filter
+    const warehouseFilter = document.getElementById('filterWarehouse');
+    if (warehouseFilter) {
+        const currentValue = warehouseFilter.value;
+        warehouseFilter.innerHTML = '<option value="">All Warehouses</option>';
+        
+        warehouses.forEach(warehouse => {
+            const option = document.createElement('option');
+            option.value = warehouse.id;
+            option.textContent = warehouse.name;
+            warehouseFilter.appendChild(option);
+        });
+        
+        if (currentValue) warehouseFilter.value = currentValue;
+    }
+    // Populate product type filter
+    const productFilter = document.getElementById('filterProduct');
+    if (productFilter) {
+        const currentValue = productFilter.value;
+        productFilter.innerHTML = '<option value="">All Products</option>';
+        
+        productTypes.forEach(product => {
+            const option = document.createElement('option');
+            option.value = product.id;
+            option.textContent = `${product.name} (${product.category})`;
+            productFilter.appendChild(option);
+        });
+        
+        if (currentValue) productFilter.value = currentValue;
+    }
 }
 
 

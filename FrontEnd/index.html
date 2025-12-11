@@ -104,12 +104,16 @@
                 </div>
             </div>
 
+            <!-- Warehouse Capacity Alerts -->
             <div class="row">
                 <div class="col-lg-8">
                     <h4 class="text-yellow mb-3"><i class="bi bi-bar-chart"></i> Warehouse Capacity</h4>
                     <div id="warehouseCapacityList"></div>
                 </div>
-                
+                <div class="col-lg-4 mt-4 mt-lg-0">
+                    <h4 class="text-yellow mb-3"><i class="bi bi-exclamation-triangle"></i> Alerts</h4>
+                    <div id="alertsList"></div>
+                </div>
             </div>
         </section>
 
@@ -176,7 +180,40 @@
         <section id="inventory-section" class="content-section" style="display: none;">
             <h2 class="section-title">Inventory Management</h2>
             
-            <!-- Form for items -->
+            <!-- Filter and Search Form -->
+            <div class="form-section">
+                <h4 class="text-yellow mb-3"><i class="bi bi-search"></i> Search & Filter Inventory</h4>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label for="inventorySearch" class="form-label">Search</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="inventorySearch" 
+                                placeholder="Search by serial, product, category, or warehouse...">
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterWarehouse" class="form-label">Filter by Warehouse</label>
+                        <select class="form-select" id="filterWarehouse">
+                            <option value="">All Warehouses</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="filterProduct" class="form-label">Filter by Product</label>
+                        <select class="form-select" id="filterProduct">
+                            <option value="">All Products</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-bat-secondary w-100" id="clearFilters">
+                            <i class="bi bi-x-circle"></i> Clear Filters
+                        </button>
+                    </div>
+                </div>
+                <div class="text-grey small" id="filterStats">Showing 0 of 0 items</div>
+            </div>
+
+            <!-- Form for adding items -->
             <div class="form-section">
                 <h4 class="text-yellow mb-3"><i class="bi bi-plus-circle"></i> Add New Inventory Item</h4>
                 <form id="inventoryForm">
@@ -201,29 +238,45 @@
                         <div class="col-md-3">
                             <label for="inventoryQuantity" class="form-label">Quantity</label>
                             <input type="number" class="form-control" id="inventoryQuantity" min="1" required>
-                        </div>
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-3">
-                            <label for="inventoryLocation" class="form-label">Storage Location</label>
-                            <input type="text" class="form-control" id="inventoryLocation" placeholder="Optional">
-                        </div>
-                        <div class="col-md-2">
-                            <label for="inventoryCondition" class="form-label">Condition</label>
-                            <select class="form-select" id="inventoryCondition">
-                                <option value="NEW">New</option>
-                                <option value="GOOD">Good</option>
-                                <option value="FAIR">Fair</option>
-                                <option value="POOR">Poor</option>
-                            </select>
-                        </div>
-                        <div class="col-md-5">
-                            <label for="inventoryNotes" class="form-label">Notes</label>
-                            <input type="text" class="form-control" id="inventoryNotes" placeholder="Optional notes">
-                        </div>
+                        </div>                 
                         <div class="col-md-2 d-flex align-items-end">
                             <button type="submit" class="btn btn-bat-primary w-100">
                                 <i class="bi bi-save"></i> Save
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Transfer Section -->
+            <div class="form-section" id="transferSection" style="display: none;">
+                <h4 class="text-yellow mb-3"><i class="bi bi-arrow-left-right"></i> Transfer Inventory Item</h4>
+                <div class="alert alert-info mb-3">
+                    <strong>Item Details:</strong><br>
+                    Product: <span id="transferItemName" class="text-yellow">-</span><br>
+                    Current Location: <span id="transferCurrentWarehouse" class="text-yellow">-</span><br>
+                    Current Quantity: <span id="transferCurrentQuantity" class="text-yellow">-</span>
+                </div>
+                <form id="transferForm">
+                    <input type="hidden" id="transferItemId">
+                    <input type="hidden" id="transferSourceWarehouse">
+                    <div class="row g-3">
+                        <div class="col-md-5">
+                            <label for="transferDestinationWarehouse" class="form-label">Destination Warehouse</label>
+                            <select class="form-select" id="transferDestinationWarehouse" required>
+                                <option value="">Select destination...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="transferQuantity" class="form-label">Quantity to Transfer</label>
+                            <input type="number" class="form-control" id="transferQuantity" min="1" required>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end gap-2">
+                            <button type="submit" class="btn btn-bat-primary flex-fill">
+                                <i class="bi bi-arrow-right"></i> Transfer
+                            </button>
+                            <button type="button" class="btn btn-bat-secondary flex-fill" onclick="cancelTransfer()">
+                                <i class="bi bi-x"></i> Cancel
                             </button>
                         </div>
                     </div>
@@ -237,10 +290,9 @@
                         <tr>
                             <th>Serial #</th>
                             <th>Product</th>
+                            <th>Category</th>
                             <th>Warehouse</th>
                             <th>Quantity</th>
-                            <th>Location</th>
-                            <th>Condition</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
