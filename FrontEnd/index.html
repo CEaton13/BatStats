@@ -174,9 +174,14 @@
             <div class="form-section">
                 <div class="row g-3 mb-4">
                     <div class="col-md-4">
-                        <label for="inventorySearch" class="form-label">Search</label>
+                        <label for="inventorySearch" class="form-label">
+                            <i class="bi bi-search"></i> Search
+                        </label>
                         <input type="text" class="form-control" id="inventorySearch" 
-                            placeholder="Search by serial number or product name...">
+                            placeholder="Search by serial or product name (min 2 chars)...">
+                        <small class="form-text text-muted">
+                            Searches serial numbers and product names
+                        </small>
                     </div>
                     <div class="col-md-4">
                         <label for="warehouseFilter" class="form-label">Filter by Warehouse</label>

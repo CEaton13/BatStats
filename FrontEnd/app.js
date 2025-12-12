@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
     setupForms();
     setupSearchAndFilter();
     initializeLocationModal();
-    setupSerialNumberAutoGenerate();
 });
 
 // Initialize location modal
@@ -46,38 +45,6 @@ function initializeLocationModal() {
         document.getElementById('transferLocationForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             await transferBetweenWarehouses();
-        });
-    }
-}
-
-// Setup auto-generate serial number functionality
-function setupSerialNumberAutoGenerate() {
-    const productTypeSelect = document.getElementById('inventoryProductType');
-    const serialInput = document.getElementById('inventorySerial');
-    const autoGenBtn = document.getElementById('autoGenerateSerial');
-    
-    if (autoGenBtn && productTypeSelect && serialInput) {
-        autoGenBtn.addEventListener('click', function() {
-            const productTypeId = productTypeSelect.value;
-            if (!productTypeId) {
-                showAlert('Please select a product type first', 'warning');
-                return;
-            }
-            
-            const productType = productTypes.find(p => p.id == productTypeId);
-            if (productType) {
-                // Generate serial based on category
-                const categoryPrefix = productType.category.length >= 3 
-                    ? productType.category.substring(0, 3).toUpperCase()
-                    : productType.category.toUpperCase();
-                
-                // Use timestamp to make it unique
-                const timestamp = Date.now().toString().slice(-4);
-                const suggestedSerial = `${categoryPrefix}-${timestamp}`;
-                
-                serialInput.value = suggestedSerial;
-                serialInput.focus();
-            }
         });
     }
 }
@@ -191,8 +158,13 @@ function showAlert(message, type = 'info') {
 function setupSearchAndFilter() {
     const searchInput = document.getElementById('inventorySearch');
     if (searchInput) {
+        // Debounce search to avoid too many API calls
+        let searchTimeout;
         searchInput.addEventListener('input', function(e) {
-            filterInventoryItems();
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                performSearch();
+            }, 300); // Wait 300ms after user stops typing
         });
     }
     
@@ -210,6 +182,33 @@ function setupSearchAndFilter() {
         });
     }
 }
+
+async function performSearch() {
+    const searchTerm = document.getElementById('inventorySearch')?.value.trim() || '';
+    
+    try {
+        if (searchTerm.length === 0) {
+            // No search term - load all items
+            await loadInventoryItems();
+        } else if (searchTerm.length >= 2) {
+            // Search requires at least 2 characters
+            const response = await fetch(`${API_BASE_URL}/inventory/search?term=${encodeURIComponent(searchTerm)}`);
+            if (!response.ok) {
+                throw new Error('Search failed');
+            }
+            allInventoryItems = await response.json();
+            inventoryItems = [...allInventoryItems];
+            
+            // Apply warehouse/product type filters if active
+            filterInventoryItems();
+        }
+    } catch (error) {
+        console.error('Error searching inventory:', error);
+        showAlert('Search failed. Showing all items.', 'warning');
+        await loadInventoryItems();
+    }
+}
+
 
 // ==================== DASHBOARD ====================
 
@@ -497,13 +496,10 @@ function displayInventoryItems() {
                 <td><span class="badge badge-yellow">${totalQuantity}</span></td>
                 <td>${locations.length} location${locations.length !== 1 ? 's' : ''}</td>
                 <td>
-                    <button class="btn btn-bat-action btn-sm" onclick="manageItemLocations(${item.id})">
-                        <i class="bi bi-pin-map"></i> Locations
+                    <button class="btn btn-bat-action btn-sm" onclick="manageItemLocations(${item.id})" title="Manage warehouse locations and quantities">
+                        <i class="bi bi-pin-map"></i> Manage
                     </button>
-                    <button class="btn btn-bat-action btn-sm" onclick="editInventoryItem(${item.id})">
-                        <i class="bi bi-pencil"></i> Edit
-                    </button>
-                    <button class="btn btn-bat-danger btn-sm" onclick="deleteInventoryItem(${item.id})">
+                    <button class="btn btn-bat-danger btn-sm" onclick="deleteInventoryItem(${item.id})" title="Delete this item completely">
                         <i class="bi bi-trash"></i> Delete
                     </button>
                 </td>
@@ -518,7 +514,9 @@ async function saveInventoryItem() {
     const id = document.getElementById('inventoryId').value;
     const item = {
         serialNumber: document.getElementById('inventorySerial').value,
-        productTypeId: parseInt(document.getElementById('inventoryProductType').value)
+        productTypeId: parseInt(document.getElementById('inventoryProductType').value),
+        initialWarehouseId: parseInt(document.getElementById('inventoryWarehouse').value),
+        initialQuantity: parseInt(document.getElementById('inventoryQuantity').value)
     };
     
     try {
@@ -548,16 +546,6 @@ async function saveInventoryItem() {
     }
 }
 
-function editInventoryItem(id) {
-    const item = allInventoryItems.find(i => i.id === id);
-    if (!item) return;
-    
-    document.getElementById('inventoryId').value = item.id;
-    document.getElementById('inventorySerial').value = item.serialNumber;
-    document.getElementById('inventoryProductType').value = item.productType?.id || '';
-    
-    document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
-}
 
 async function deleteInventoryItem(id) {
     if (!confirm('Are you sure you want to delete this inventory item?')) return;
@@ -579,20 +567,13 @@ async function deleteInventoryItem(id) {
 }
 
 function filterInventoryItems() {
-    const searchTerm = document.getElementById('inventorySearch')?.value.toLowerCase() || '';
     const warehouseFilter = document.getElementById('warehouseFilter')?.value || '';
     const productTypeFilter = document.getElementById('productTypeFilter')?.value || '';
     
+    // Start with all items (which may already be filtered by search)
     let filtered = [...allInventoryItems];
     
-    if (searchTerm) {
-        filtered = filtered.filter(item => {
-            const serialMatch = item.serialNumber?.toLowerCase().includes(searchTerm);
-            const productMatch = item.productType?.name?.toLowerCase().includes(searchTerm);
-            return serialMatch || productMatch;
-        });
-    }
-    
+    // Apply warehouse filter
     if (warehouseFilter) {
         const warehouseId = parseInt(warehouseFilter);
         filtered = filtered.filter(item => {
@@ -600,6 +581,7 @@ function filterInventoryItems() {
         });
     }
     
+    // Apply product type filter
     if (productTypeFilter) {
         const productTypeId = parseInt(productTypeFilter);
         filtered = filtered.filter(item => {

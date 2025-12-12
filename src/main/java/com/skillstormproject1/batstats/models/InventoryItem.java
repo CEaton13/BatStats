@@ -4,10 +4,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import jakarta.persistence.CascadeType;
@@ -92,17 +88,7 @@ public class InventoryItem {
         return warehouseLocations.size();
     }
 
-    // add this item to a warehouse location
-    public void addToWarehouse(Warehouse warehouse, Integer quantity) {
-        WarehouseInventory location = new WarehouseInventory(warehouse, this, quantity);
-        warehouseLocations.add(location);
-    }
-
-    // remove this item from a warehouse location
-    public void removeFromWarehouse(Warehouse warehouse) {
-        warehouseLocations.removeIf(loc -> loc.getWarehouse().equals(warehouse));
-    }
-
+    // Getters and Setters
     public Integer getId() {
         return id;
     }

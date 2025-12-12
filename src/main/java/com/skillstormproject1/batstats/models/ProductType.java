@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
@@ -128,14 +127,18 @@ public class ProductType {
         this.inventoryItems = inventoryItems;
     }
 
+   
+
     @Override
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + id;
+        result = prime * result + ((id == null) ? 0 : id.hashCode());
         result = prime * result + ((name == null) ? 0 : name.hashCode());
         result = prime * result + ((category == null) ? 0 : category.hashCode());
         result = prime * result + ((unitOfMeasure == null) ? 0 : unitOfMeasure.hashCode());
+        result = prime * result + ((description == null) ? 0 : description.hashCode());
+        result = prime * result + ((inventoryItems == null) ? 0 : inventoryItems.hashCode());
         result = prime * result + ((createdAt == null) ? 0 : createdAt.hashCode());
         result = prime * result + ((updatedAt == null) ? 0 : updatedAt.hashCode());
         return result;
@@ -150,7 +153,10 @@ public class ProductType {
         if (getClass() != obj.getClass())
             return false;
         ProductType other = (ProductType) obj;
-        if (id != other.id)
+        if (id == null) {
+            if (other.id != null)
+                return false;
+        } else if (!id.equals(other.id))
             return false;
         if (name == null) {
             if (other.name != null)
@@ -166,6 +172,16 @@ public class ProductType {
             if (other.unitOfMeasure != null)
                 return false;
         } else if (!unitOfMeasure.equals(other.unitOfMeasure))
+            return false;
+        if (description == null) {
+            if (other.description != null)
+                return false;
+        } else if (!description.equals(other.description))
+            return false;
+        if (inventoryItems == null) {
+            if (other.inventoryItems != null)
+                return false;
+        } else if (!inventoryItems.equals(other.inventoryItems))
             return false;
         if (createdAt == null) {
             if (other.createdAt != null)

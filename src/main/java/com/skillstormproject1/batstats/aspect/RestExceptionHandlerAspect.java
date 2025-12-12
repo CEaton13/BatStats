@@ -27,7 +27,7 @@ public class RestExceptionHandlerAspect {
 
     private static final Logger logger = LoggerFactory.getLogger(RestExceptionHandlerAspect.class);
 
-    @Around("execution(* com.batstats.controller..*(..))")
+    @Around("execution(* com.skillstormproject1.batstats.controller..*(..))")
     public Object handleControllerExceptions(ProceedingJoinPoint joinPoint) throws Throwable {
         try {
             return joinPoint.proceed();
