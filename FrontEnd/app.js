@@ -14,8 +14,40 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
     setupForms();
     setupSearchAndFilter();
+    setupSerialNumberAutoGenerate();
 });
 
+// Setup auto-generate serial number functionality
+function setupSerialNumberAutoGenerate() {
+    const productTypeSelect = document.getElementById('inventoryProductType');
+    const serialInput = document.getElementById('inventorySerial');
+    const autoGenBtn = document.getElementById('autoGenerateSerial');
+    
+    if (autoGenBtn && productTypeSelect && serialInput) {
+        autoGenBtn.addEventListener('click', function() {
+            const productTypeId = productTypeSelect.value;
+            if (!productTypeId) {
+                showAlert('Please select a product type first', 'warning');
+                return;
+            }
+            
+            const productType = productTypes.find(p => p.id == productTypeId);
+            if (productType) {
+                // Generate serial based on category
+                const categoryPrefix = productType.category.length >= 3 
+                    ? productType.category.substring(0, 3).toUpperCase()
+                    : productType.category.toUpperCase();
+                
+                // Use timestamp to make it unique
+                const timestamp = Date.now().toString().slice(-4);
+                const suggestedSerial = `${categoryPrefix}-${timestamp}`;
+                
+                serialInput.value = suggestedSerial;
+                serialInput.focus();
+            }
+        });
+    }
+}
 
 // nav links setup for on click 
 function setupNavigation() {
@@ -35,7 +67,6 @@ function setupNavigation() {
         });
     });
 }
-
 
 function showSection(sectionName) {
     currentSection = sectionName;
@@ -90,6 +121,7 @@ function setupForms() {
             await saveInventoryItem();
         });
     }
+    
     // Product form
     const productForm = document.getElementById('productForm');
     if (productForm) {
@@ -98,11 +130,15 @@ function setupForms() {
             await saveProductType();
         });
     }
+    
     // Transfer Request Form
-    document.getElementById('transferForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        await transferInventoryItem();
-    });
+    const transferForm = document.getElementById('transferForm');
+    if (transferForm) {
+        transferForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await transferInventoryItem();
+        });
+    }
 }
 
 // Alerts to show if functions properly updated or failed
@@ -260,7 +296,6 @@ function displayAlerts() {
     container.innerHTML = html;
 }
 
-
 // Warehouses
 async function loadWarehouses() {
     try {
@@ -272,7 +307,6 @@ async function loadWarehouses() {
         }
         
         populateWarehouseSelects();
-        //populateFilterSelects();
         return warehouses;
     } catch (error) {
         console.error('Error loading warehouses:', error);
@@ -326,7 +360,7 @@ function displayWarehouses() {
     tbody.innerHTML = html;
 }
 
-// creating a new warhouse function
+// creating a new warehouse function
 async function saveWarehouse() {
     const id = document.getElementById('warehouseId').value;
     const warehouse = {
@@ -359,6 +393,7 @@ async function saveWarehouse() {
         showAlert('Failed to save warehouse', 'danger');
     }
 }
+
 // edit function for a warehouse 
 function editWarehouse(id) {
     const warehouse = warehouses.find(w => w.id === id);
@@ -396,7 +431,6 @@ async function deleteWarehouse(id) {
     }
 }
 
-
 // Inventory Items
 async function loadInventoryItems() {
     try {
@@ -407,7 +441,7 @@ async function loadInventoryItems() {
         allInventoryItems = await response.json();
         inventoryItems = [...allInventoryItems];
 
-        console.log('Loaded inventory items:', inventoryItems); // Debug log
+        console.log('Loaded inventory items:', inventoryItems);
         
         if (currentSection === 'inventory') {
             displayInventoryItems();
@@ -431,7 +465,6 @@ function displayInventoryItems() {
     
     let html = '';
     inventoryItems.forEach(item => {
-        // Defensive checks for all nested properties
         const serialNumber = item.serialNumber || 'N/A';
         const productName = item.productType?.name || 'Unknown Product';
         const locations = item.warehouseLocations || [];
@@ -448,7 +481,6 @@ function displayInventoryItems() {
                 .join(' ');
         }
         
-        // Calculate total quantity safely
         const totalQuantity = locations.reduce((sum, loc) => sum + (loc.quantity || 0), 0);
         
         html += `
@@ -480,24 +512,22 @@ async function manageItemLocations(itemId) {
     const item = inventoryItems.find(i => i.id === itemId);
     if (!item) return;
     
-    // Show modal or section with:
-    // 1. Current locations
-    // 2. Form to add to new warehouse
-    // 3. Forms to update quantities
-    // 4. Transfer between warehouses
-    
-    // This would be a more complex UI component
     console.log('Managing locations for:', item);
     alert('Location management UI - see implementation details in guide');
 }
 
-
-// create a new Inventory Item in the database
+// Create a new Inventory Item with warehouse assignment
 async function saveInventoryItem() {
     const id = document.getElementById('inventoryId').value;
+    
+    // Get serial number - can be empty for auto-generation
+    let serialNumber = document.getElementById('inventorySerial').value.trim();
+    
     const item = {
-        serialNumber: document.getElementById('inventorySerial').value,
-        productTypeId: parseInt(document.getElementById('inventoryProductType').value)
+        serialNumber: serialNumber || null, // null triggers auto-generation
+        productTypeId: parseInt(document.getElementById('inventoryProductType').value),
+        initialWarehouseId: parseInt(document.getElementById('inventoryWarehouse').value),
+        initialQuantity: parseInt(document.getElementById('inventoryQuantity').value)
     };
     
     try {
@@ -515,12 +545,20 @@ async function saveInventoryItem() {
             throw new Error(error);
         }
         
+        const createdItem = await response.json();
+        
+        // Clear form
         document.getElementById('inventoryForm').reset();
         document.getElementById('inventoryId').value = '';
         
         await loadInventoryItems();
-        await loadWarehouses();
-        showAlert(`Inventory item ${id ? 'updated' : 'created'} successfully`, 'success');
+        await loadWarehouses(); // Reload to get updated capacities
+        
+        showAlert(
+            `Inventory item ${id ? 'updated' : 'created'} successfully` + 
+            (serialNumber ? '' : ` with auto-generated serial: ${createdItem.serialNumber}`), 
+            'success'
+        );
     } catch (error) {
         console.error('Error saving inventory item:', error);
         showAlert(error.message, 'danger');
@@ -534,6 +572,8 @@ function editInventoryItem(id) {
     document.getElementById('inventoryId').value = item.id;
     document.getElementById('inventorySerial').value = item.serialNumber;
     document.getElementById('inventoryProductType').value = item.productType?.id || '';
+    
+    // Note: Can't edit warehouse/quantity in update - those require transfer
     
     document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
 }
@@ -563,10 +603,8 @@ function filterInventoryItems() {
     const warehouseFilter = document.getElementById('warehouseFilter')?.value || '';
     const productTypeFilter = document.getElementById('productTypeFilter')?.value || '';
     
-    // Start with all items
     let filtered = [...allInventoryItems];
     
-    // Apply search term (searches serial number and product name)
     if (searchTerm) {
         filtered = filtered.filter(item => {
             const serialMatch = item.serialNumber?.toLowerCase().includes(searchTerm);
@@ -575,16 +613,13 @@ function filterInventoryItems() {
         });
     }
     
-    // Apply warehouse filter
     if (warehouseFilter) {
         const warehouseId = parseInt(warehouseFilter);
         filtered = filtered.filter(item => {
-            // Check if item exists in the selected warehouse
             return item.warehouseLocations?.some(loc => loc.warehouse?.id === warehouseId);
         });
     }
     
-    // Apply product type filter
     if (productTypeFilter) {
         const productTypeId = parseInt(productTypeFilter);
         filtered = filtered.filter(item => {
@@ -592,13 +627,11 @@ function filterInventoryItems() {
         });
     }
     
-    // Update display with filtered items
     inventoryItems = filtered;
     displayInventoryItems();
 }
 
 function populateFilters() {
-    // Populate warehouse filter
     const warehouseFilter = document.getElementById('warehouseFilter');
     if (warehouseFilter) {
         warehouseFilter.innerHTML = '<option value="">All Warehouses</option>';
@@ -610,7 +643,6 @@ function populateFilters() {
         });
     }
     
-    // Populate product type filter
     const productTypeFilter = document.getElementById('productTypeFilter');
     if (productTypeFilter) {
         productTypeFilter.innerHTML = '<option value="">All Product Types</option>';
@@ -635,7 +667,6 @@ function showTransferForm(itemId) {
     const item = inventoryItems.find(i => i.id === itemId);
     if (!item) return;
     
-    // Set transfer form values
     document.getElementById('transferItemId').value = item.id;
     document.getElementById('transferItemName').textContent = `${item.productType.name} (${item.serialNumber})`;
     document.getElementById('transferCurrentWarehouse').textContent = item.warehouse.name;
@@ -644,7 +675,6 @@ function showTransferForm(itemId) {
     document.getElementById('transferQuantity').max = item.quantity;
     document.getElementById('transferQuantity').value = item.quantity;
     
-    // Populate destination warehouse dropdown (exclude current warehouse)
     const destSelect = document.getElementById('transferDestinationWarehouse');
     destSelect.innerHTML = '<option value="">Select destination warehouse...</option>';
     
@@ -657,7 +687,6 @@ function showTransferForm(itemId) {
         }
     });
     
-    // Show transfer section and scroll to it
     document.getElementById('transferSection').style.display = 'block';
     document.getElementById('transferSection').scrollIntoView({ behavior: 'smooth' });
 }
@@ -698,10 +727,8 @@ async function transferInventoryItem() {
             throw new Error(error);
         }
         
-        // Clear form and hide section
         cancelTransfer();
         
-        // Reload data
         await loadInventoryItems();
         await loadWarehouses();
         
@@ -862,7 +889,6 @@ function populateProductTypeSelects() {
 }
 
 function populateFilterSelects() {
-    // Populate warehouse filter
     const warehouseFilter = document.getElementById('filterWarehouse');
     if (warehouseFilter) {
         const currentValue = warehouseFilter.value;
@@ -877,7 +903,7 @@ function populateFilterSelects() {
         
         if (currentValue) warehouseFilter.value = currentValue;
     }
-    // Populate product type filter
+    
     const productFilter = document.getElementById('filterProduct');
     if (productFilter) {
         const currentValue = productFilter.value;
@@ -893,5 +919,3 @@ function populateFilterSelects() {
         if (currentValue) productFilter.value = currentValue;
     }
 }
-
-

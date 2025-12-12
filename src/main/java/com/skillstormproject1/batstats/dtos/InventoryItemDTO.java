@@ -5,10 +5,14 @@ import java.util.List;
 
 public class InventoryItemDTO {
     
-    private String serialNumber;
+    private String serialNumber;  // Can be null for auto-generation
     private Integer productTypeId;
+    
+    // Initial warehouse assignment (for creation)
+    private Integer initialWarehouseId;
+    private Integer initialQuantity;
 
-    // list the warehouse locations get mapping
+    // List of warehouse locations (for GET mapping)
     private List<WarehouseLocationDTO> locations = new ArrayList<>();
     
     public InventoryItemDTO() {
@@ -35,6 +39,22 @@ public class InventoryItemDTO {
         this.productTypeId = productTypeId;
     }
 
+    public Integer getInitialWarehouseId() {
+        return initialWarehouseId;
+    }
+
+    public void setInitialWarehouseId(Integer initialWarehouseId) {
+        this.initialWarehouseId = initialWarehouseId;
+    }
+
+    public Integer getInitialQuantity() {
+        return initialQuantity;
+    }
+
+    public void setInitialQuantity(Integer initialQuantity) {
+        this.initialQuantity = initialQuantity;
+    }
+
     public List<WarehouseLocationDTO> getLocations() {
         return locations;
     }
@@ -49,6 +69,8 @@ public class InventoryItemDTO {
         int result = 1;
         result = prime * result + ((serialNumber == null) ? 0 : serialNumber.hashCode());
         result = prime * result + ((productTypeId == null) ? 0 : productTypeId.hashCode());
+        result = prime * result + ((initialWarehouseId == null) ? 0 : initialWarehouseId.hashCode());
+        result = prime * result + ((initialQuantity == null) ? 0 : initialQuantity.hashCode());
         result = prime * result + ((locations == null) ? 0 : locations.hashCode());
         return result;
     }
@@ -72,6 +94,16 @@ public class InventoryItemDTO {
                 return false;
         } else if (!productTypeId.equals(other.productTypeId))
             return false;
+        if (initialWarehouseId == null) {
+            if (other.initialWarehouseId != null)
+                return false;
+        } else if (!initialWarehouseId.equals(other.initialWarehouseId))
+            return false;
+        if (initialQuantity == null) {
+            if (other.initialQuantity != null)
+                return false;
+        } else if (!initialQuantity.equals(other.initialQuantity))
+            return false;
         if (locations == null) {
             if (other.locations != null)
                 return false;
@@ -82,8 +114,9 @@ public class InventoryItemDTO {
 
     @Override
     public String toString() {
-        return "InventoryItemDTO [serialNumber=" + serialNumber + ", productTypeId=" + productTypeId + ", locations="
-                + locations + "]";
+        return "InventoryItemDTO [serialNumber=" + serialNumber + ", productTypeId=" + productTypeId 
+                + ", initialWarehouseId=" + initialWarehouseId + ", initialQuantity=" + initialQuantity 
+                + ", locations=" + locations + "]";
     }
-
+    
 }

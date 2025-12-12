@@ -9,10 +9,15 @@ import org.springframework.web.server.ResponseStatusException;
 import com.skillstormproject1.batstats.dtos.InventoryItemDTO;
 import com.skillstormproject1.batstats.exceptions.DuplicateSerialNumberException;
 import com.skillstormproject1.batstats.exceptions.ResourceNotFoundException;
+import com.skillstormproject1.batstats.exceptions.WarehouseCapacityExceededException;
 import com.skillstormproject1.batstats.models.InventoryItem;
 import com.skillstormproject1.batstats.models.ProductType;
+import com.skillstormproject1.batstats.models.Warehouse;
+import com.skillstormproject1.batstats.models.WarehouseInventory;
 import com.skillstormproject1.batstats.repositories.InventoryItemRepository;
 import com.skillstormproject1.batstats.repositories.ProductTypeRepository;
+import com.skillstormproject1.batstats.repositories.WarehouseInventoryRepository;
+import com.skillstormproject1.batstats.repositories.WarehouseRepository;
 
 import jakarta.transaction.Transactional;
 
@@ -22,11 +27,17 @@ public class InventoryItemService {
 
     private final InventoryItemRepository inventoryItemRepository;
     private final ProductTypeRepository productTypeRepository;
+    private final WarehouseRepository warehouseRepository;
+    private final WarehouseInventoryRepository warehouseInventoryRepository;
     
     public InventoryItemService(InventoryItemRepository inventoryItemRepository,
-                               ProductTypeRepository productTypeRepository) {
+                               ProductTypeRepository productTypeRepository,
+                               WarehouseRepository warehouseRepository,
+                               WarehouseInventoryRepository warehouseInventoryRepository) {
         this.inventoryItemRepository = inventoryItemRepository;
         this.productTypeRepository = productTypeRepository;
+        this.warehouseRepository = warehouseRepository;
+        this.warehouseInventoryRepository = warehouseInventoryRepository;
     }
 
     // finds all inventory items 
@@ -66,6 +77,33 @@ public class InventoryItemService {
     public List<InventoryItem> getItemsWithoutLocation() {
         return inventoryItemRepository.findItemsWithoutLocation();
     }
+
+    private String generateSerialNumber(ProductType productType) {
+        // Get product category prefix (first 3 letters uppercase)
+        String categoryPrefix = productType.getCategory().length() >= 3 
+            ? productType.getCategory().substring(0, 3).toUpperCase()
+            : productType.getCategory().toUpperCase();
+        
+        // Count existing items of this product type to get next number
+        int existingCount = inventoryItemRepository.findByProductTypeId(productType.getId()).size();
+        int nextNumber = existingCount + 1;
+        
+        String serialNumber;
+        int attempts = 0;
+        
+        // Keep trying until we find a unique serial number
+        do {
+            serialNumber = String.format("%s-%03d", categoryPrefix, nextNumber + attempts);
+            attempts++;
+        } while (inventoryItemRepository.existsBySerialNumber(serialNumber) && attempts < 1000);
+        
+        if (attempts >= 1000) {
+            throw new IllegalStateException("Unable to generate unique serial number after 1000 attempts");
+        }
+        
+        return serialNumber;
+    }
+
     /**
      * createInventoryItem - set all params for item like product type then put it into a warehouse save 
      * updateInventoryItem - update quantity which will affect warehouse capacity
@@ -73,22 +111,52 @@ public class InventoryItemService {
      */
     
     public InventoryItem createInventoryItem(InventoryItemDTO itemDTO) {
-        // Check for duplicate serial number
-        if (inventoryItemRepository.existsBySerialNumber(itemDTO.getSerialNumber())) {
-            throw new DuplicateSerialNumberException(
-                "Item with serial number " + itemDTO.getSerialNumber() + " already exists");
-        }
-                // Get product type
+        // Get product type
         ProductType productType = productTypeRepository.findById(itemDTO.getProductTypeId())
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Product type not found with id: " + itemDTO.getProductTypeId()));
         
-        // Create item (much simpler now!)
+        // Generate serial number if not provided
+        String serialNumber = itemDTO.getSerialNumber();
+        if (serialNumber == null || serialNumber.trim().isEmpty()) {
+            serialNumber = generateSerialNumber(productType);
+        } else {
+            // Check for duplicate if provided
+            if (inventoryItemRepository.existsBySerialNumber(serialNumber)) {
+                throw new DuplicateSerialNumberException(
+                    "Item with serial number " + serialNumber + " already exists");
+            }
+        }
+        
+        // Create the inventory item
         InventoryItem item = new InventoryItem();
-        item.setSerialNumber(itemDTO.getSerialNumber());
+        item.setSerialNumber(serialNumber);
         item.setProductType(productType);
         
-        return inventoryItemRepository.save(item);
+        // Save the item first
+        item = inventoryItemRepository.save(item);
+        
+        // If warehouse assignment provided, add to warehouse
+        if (itemDTO.getInitialWarehouseId() != null && itemDTO.getInitialQuantity() != null) {
+            Warehouse warehouse = warehouseRepository.findById(itemDTO.getInitialWarehouseId())
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Warehouse not found with id: " + itemDTO.getInitialWarehouseId()));
+            
+            // Check warehouse capacity
+            if (!warehouse.hasCapacity(itemDTO.getInitialQuantity())) {
+                throw new WarehouseCapacityExceededException(
+                    String.format("Warehouse '%s' has insufficient capacity. Available: %d, Required: %d",
+                        warehouse.getName(), warehouse.getAvailableCapacity(), itemDTO.getInitialQuantity()));
+            }
+            
+            // Create warehouse location entry
+            WarehouseInventory location = new WarehouseInventory(warehouse, item, itemDTO.getInitialQuantity());
+            warehouseInventoryRepository.save(location);
+            
+            // Database trigger will automatically update warehouse capacity
+        }
+        
+        return item;
     }
     
     public InventoryItem updateInventoryItem(Integer id, InventoryItemDTO itemDTO) {
@@ -111,7 +179,7 @@ public class InventoryItemService {
             throw new ResourceNotFoundException(
                 "Inventory item not found with id: " + id);
         }
-        
+        // cascade delete to handle the warehouse inventory items
         inventoryItemRepository.deleteById(id);
     }
 }

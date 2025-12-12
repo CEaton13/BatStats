@@ -1,0 +1,533 @@
+/* CSS Custom Properties (Variables) */
+:root {
+    /* Primary Colors */
+    --bat-yellow: #FFC107;
+    --bat-yellow-dark: #FFA000;
+    --bat-blue: #1976D2;
+    --bat-blue-light: #42A5F5;
+    --bat-blue-dark: #1565C0;
+    
+    /* Grey Scale */
+    --grey-50: #FAFAFA;
+    --grey-100: #F5F5F5;
+    --grey-200: #EEEEEE;
+    --grey-300: #E0E0E0;
+    --grey-400: #BDBDBD;
+    --grey-500: #9E9E9E;
+    --grey-600: #757575;
+    --grey-700: #616161;
+    --grey-800: #424242;
+    --grey-900: #212121;
+    
+    /* Semantic Colors */
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --danger-color: #F44336;
+    --info-color: var(--bat-blue);
+    
+    /* Layout */
+    --border-radius: 8px;
+    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --box-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
+body {
+    background-color: var(--grey-100);
+    color: var(--grey-900);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    line-height: 1.6;
+}
+
+/* ========================================
+   Header
+   ======================================== */
+.header {
+    background: linear-gradient(135deg, var(--grey-50) 0%, var(--grey-200) 100%);
+    border-bottom: 3px solid var(--bat-yellow);
+    padding: 1.5rem 0;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.header h1 {
+    color: var(--grey-900);
+    font-weight: 700;
+    font-size: 2.5rem;
+    margin-bottom: 0.25rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.header .subtitle {
+    color: var(--grey-600);
+    font-size: 1rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* ========================================
+   Navigation Pills
+   ======================================== */
+.nav-pills-container {
+    gap: 0.5rem;
+}
+
+.nav-pills .nav-link {
+    color: var(--grey-700);
+    background-color: var(--grey-50);
+    border: 2px solid var(--grey-300);
+    border-radius: var(--border-radius);
+    padding: 0.625rem 1.25rem;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+}
+
+.nav-pills .nav-link:hover {
+    background-color: var(--grey-200);
+    border-color: var(--bat-blue);
+    color: var(--bat-blue-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow);
+}
+
+.nav-pills .nav-link.active {
+    background-color: var(--bat-yellow);
+    border-color: var(--bat-yellow-dark);
+    color: var(--grey-900);
+    box-shadow: var(--box-shadow);
+}
+
+/* ========================================
+   Section Titles
+   ======================================== */
+.section-title {
+    color: var(--grey-900);
+    font-weight: 700;
+    font-size: 2rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 3px solid var(--bat-yellow);
+    display: inline-block;
+}
+
+/* ========================================
+   Stat Cards
+   ======================================== */
+.stat-card {
+    background-color: white;
+    border: 2px solid var(--grey-300);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    transition: all 0.3s ease;
+    height: 100%;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--box-shadow-hover);
+    border-color: var(--bat-yellow);
+}
+
+.stat-card h3 {
+    color: var(--bat-blue-dark);
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin: 0.5rem 0;
+}
+
+.stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.stat-card .stat-icon.blue {
+    background-color: rgba(25, 118, 210, 0.1);
+    color: var(--bat-blue);
+}
+
+.stat-card .stat-icon.yellow {
+    background-color: rgba(255, 193, 7, 0.1);
+    color: var(--bat-yellow-dark);
+}
+
+/* ========================================
+   Text Colors
+   ======================================== */
+.text-yellow {
+    color: var(--bat-yellow-dark) !important;
+}
+
+.text-blue {
+    color: var(--bat-blue) !important;
+}
+
+.text-grey {
+    color: var(--grey-600) !important;
+}
+
+/* ========================================
+   Tables
+   ======================================== */
+.table {
+    background-color: white;
+    border: 2px solid var(--grey-300);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    box-shadow: var(--box-shadow);
+}
+
+.table thead {
+    background-color: var(--grey-800);
+    color: white;
+}
+
+.table thead th {
+    border: none;
+    padding: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.875rem;
+}
+
+.table tbody tr {
+    background-color: white;
+    border-bottom: 1px solid var(--grey-200);
+    transition: background-color 0.2s ease;
+}
+
+.table tbody tr:hover {
+    background-color: var(--grey-50);
+}
+
+.table tbody td {
+    padding: 1rem;
+    vertical-align: middle;
+    color: var(--grey-800);
+}
+
+/* ========================================
+   Forms
+   ======================================== */
+.form-section {
+    background-color: white;
+    border: 2px solid var(--grey-300);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: var(--box-shadow);
+}
+
+.form-label {
+    color: var(--grey-800);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.form-control,
+.form-select {
+    border: 2px solid var(--grey-300);
+    border-radius: var(--border-radius);
+    padding: 0.625rem 1rem;
+    transition: all 0.3s ease;
+    background-color: var(--grey-50);
+    color: var(--grey-900);
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--bat-blue);
+    box-shadow: 0 0 0 0.2rem rgba(25, 118, 210, 0.15);
+    background-color: white;
+}
+
+.form-control::placeholder {
+    color: var(--grey-500);
+}
+
+/* ========================================
+   Buttons
+   ======================================== */
+.btn {
+    border-radius: var(--border-radius);
+    padding: 0.625rem 1.5rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.btn-primary,
+.btn-bat-primary {
+    background-color: var(--bat-yellow);
+    border-color: var(--bat-yellow-dark);
+    color: var(--grey-900);
+}
+
+.btn-primary:hover,
+.btn-bat-primary:hover {
+    background-color: var(--bat-yellow-dark);
+    border-color: var(--bat-yellow-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow);
+}
+
+.btn-bat-action {
+    background-color: var(--bat-blue);
+    border-color: var(--bat-blue-dark);
+    color: white;
+}
+
+.btn-bat-action:hover {
+    background-color: var(--bat-blue-dark);
+    border-color: var(--bat-blue-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow);
+    color: white;
+}
+
+.btn-bat-danger {
+    background-color: white;
+    border-color: var(--danger-color);
+    color: var(--danger-color);
+}
+
+.btn-bat-danger:hover {
+    background-color: var(--danger-color);
+    border-color: var(--danger-color);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow);
+}
+
+.btn-bat-secondary {
+    background-color: var(--grey-300);
+    border-color: var(--grey-400);
+    color: var(--grey-800);
+}
+
+.btn-bat-secondary:hover {
+    background-color: var(--grey-400);
+    border-color: var(--grey-500);
+    color: var(--grey-900);
+    transform: translateY(-2px);
+    box-shadow: var(--box-shadow);
+}
+
+/* ========================================
+   Badges
+   ======================================== */
+.badge {
+    padding: 0.5rem 1rem;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.badge-success {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.badge-danger {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.badge-blue {
+    background-color: var(--bat-blue-light);
+    color: white;
+}
+
+.badge-yellow {
+    background-color: var(--bat-yellow);
+    color: var(--grey-900);
+}
+
+/* ========================================
+   Progress Bars
+   ======================================== */
+.progress {
+    height: 30px;
+    background-color: var(--grey-200);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    border: 2px solid var(--grey-300);
+}
+
+.progress-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.875rem;
+    transition: width 0.6s ease;
+}
+
+.progress-bar.bg-success {
+    background-color: var(--success-color);
+}
+
+.progress-bar.bg-warning {
+    background-color: var(--warning-color);
+}
+
+.progress-bar.bg-danger {
+    background-color: var(--danger-color);
+}
+
+/* ========================================
+   Alerts
+   ======================================== */
+.alert {
+    border-radius: var(--border-radius);
+    border: 2px solid;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1rem;
+}
+
+.alert-success {
+    background-color: rgba(76, 175, 80, 0.1);
+    border-color: var(--success-color);
+    color: #2E7D32;
+}
+
+.alert-warning {
+    background-color: rgba(255, 152, 0, 0.1);
+    border-color: var(--warning-color);
+    color: #E65100;
+}
+
+.alert-danger {
+    background-color: rgba(244, 67, 54, 0.1);
+    border-color: var(--danger-color);
+    color: #C62828;
+}
+
+.alert-info {
+    background-color: rgba(25, 118, 210, 0.1);
+    border-color: var(--bat-blue);
+    color: var(--bat-blue-dark);
+}
+
+/* ========================================
+   Product Cards
+   ======================================== */
+.card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.product-card {
+    background-color: white;
+    border: 2px solid var(--grey-300);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    box-shadow: var(--box-shadow);
+    transition: all 0.3s ease;
+}
+
+.product-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--box-shadow-hover);
+    border-color: var(--bat-blue);
+}
+
+.product-card h5 {
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+/* ========================================
+   Code Elements
+   ======================================== */
+code {
+    background-color: var(--grey-200);
+    color: var(--bat-blue-dark);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+}
+
+/* ========================================
+   Utilities
+   ======================================== */
+.bg-bat-yellow {
+    background-color: var(--bat-yellow) !important;
+}
+
+.bg-bat-blue {
+    background-color: var(--bat-blue) !important;
+}
+
+.border-bat-yellow {
+    border-color: var(--bat-yellow) !important;
+}
+
+.border-bat-blue {
+    border-color: var(--bat-blue) !important;
+}
+
+/* ========================================
+   Responsive Design
+   ======================================== */
+@media (max-width: 768px) {
+    .header h1 {
+        font-size: 2rem;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+    }
+    
+    .stat-card h3 {
+        font-size: 2rem;
+    }
+    
+    .card-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ========================================
+   Custom Scrollbar (Webkit browsers)
+   ======================================== */
+::-webkit-scrollbar {
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--grey-100);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--grey-400);
+    border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--grey-500);
+}
