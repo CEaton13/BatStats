@@ -275,14 +275,18 @@ function displayWarehouseCapacity() {
 
 function displayAlerts() {
     const container = document.getElementById('alertsList');
+
+    // filter warehouse by capacity thresholds
     const criticalWarehouses = warehouses.filter(w => w.capacityPercentage >= 90);
     const warningWarehouses = warehouses.filter(w => w.capacityPercentage >= 75 && w.capacityPercentage < 90);
     
+    // check if an alert is needed 
     if (criticalWarehouses.length === 0 && warningWarehouses.length === 0) {
         container.innerHTML = '<p class="text-grey small">No alerts at this time</p>';
         return;
     }
     
+    // build the alerts either critical - red or warning - yellow  
     let html = '';
     
     criticalWarehouses.forEach(w => {
@@ -303,6 +307,7 @@ function displayAlerts() {
         `;
     });
     
+    // inject this into the DOM
     container.innerHTML = html;
 }
 
