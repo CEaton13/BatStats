@@ -22,7 +22,7 @@ import com.skillstormproject1.batstats.services.WarehouseInventoryService;
 
 @RestController
 @RequestMapping("/api/warehouse-inventory")
-@CrossOrigin(origins = "http://localhost:5500")
+@CrossOrigin(origins = "http://127.0.0.1:5500")
 public class WarehouseInventoryController {
 
     private final WarehouseInventoryService warehouseInventoryService;

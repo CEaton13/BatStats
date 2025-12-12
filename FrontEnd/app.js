@@ -6,6 +6,7 @@ let warehouses = [];
 let inventoryItems = [];
 let allInventoryItems = [];
 let productTypes = [];
+let currentLocationItem = null;  // NEW: Track current item in locations modal
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
@@ -14,40 +15,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadDashboard();
     setupForms();
     setupSearchAndFilter();
-    setupSerialNumberAutoGenerate();
 });
 
-// Setup auto-generate serial number functionality
-function setupSerialNumberAutoGenerate() {
-    const productTypeSelect = document.getElementById('inventoryProductType');
-    const serialInput = document.getElementById('inventorySerial');
-    const autoGenBtn = document.getElementById('autoGenerateSerial');
-    
-    if (autoGenBtn && productTypeSelect && serialInput) {
-        autoGenBtn.addEventListener('click', function() {
-            const productTypeId = productTypeSelect.value;
-            if (!productTypeId) {
-                showAlert('Please select a product type first', 'warning');
-                return;
-            }
-            
-            const productType = productTypes.find(p => p.id == productTypeId);
-            if (productType) {
-                // Generate serial based on category
-                const categoryPrefix = productType.category.length >= 3 
-                    ? productType.category.substring(0, 3).toUpperCase()
-                    : productType.category.toUpperCase();
-                
-                // Use timestamp to make it unique
-                const timestamp = Date.now().toString().slice(-4);
-                const suggestedSerial = `${categoryPrefix}-${timestamp}`;
-                
-                serialInput.value = suggestedSerial;
-                serialInput.focus();
-            }
-        });
-    }
-}
 
 // nav links setup for on click 
 function setupNavigation() {
@@ -67,6 +36,7 @@ function setupNavigation() {
         });
     });
 }
+
 
 function showSection(sectionName) {
     currentSection = sectionName;
@@ -121,7 +91,6 @@ function setupForms() {
             await saveInventoryItem();
         });
     }
-    
     // Product form
     const productForm = document.getElementById('productForm');
     if (productForm) {
@@ -130,13 +99,30 @@ function setupForms() {
             await saveProductType();
         });
     }
-    
     // Transfer Request Form
     const transferForm = document.getElementById('transferForm');
     if (transferForm) {
         transferForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             await transferInventoryItem();
+        });
+    }
+    
+    // NEW: Location management form
+    const addLocationForm = document.getElementById('addLocationForm');
+    if (addLocationForm) {
+        addLocationForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await addItemToWarehouseLocation();
+        });
+    }
+    
+    // NEW: Modal transfer form
+    const modalTransferForm = document.getElementById('modalTransferForm');
+    if (modalTransferForm) {
+        modalTransferForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            await transferFromModal();
         });
     }
 }
@@ -296,6 +282,7 @@ function displayAlerts() {
     container.innerHTML = html;
 }
 
+
 // Warehouses
 async function loadWarehouses() {
     try {
@@ -360,7 +347,7 @@ function displayWarehouses() {
     tbody.innerHTML = html;
 }
 
-// creating a new warehouse function
+// creating a new warhouse function
 async function saveWarehouse() {
     const id = document.getElementById('warehouseId').value;
     const warehouse = {
@@ -393,7 +380,6 @@ async function saveWarehouse() {
         showAlert('Failed to save warehouse', 'danger');
     }
 }
-
 // edit function for a warehouse 
 function editWarehouse(id) {
     const warehouse = warehouses.find(w => w.id === id);
@@ -431,6 +417,7 @@ async function deleteWarehouse(id) {
     }
 }
 
+
 // Inventory Items
 async function loadInventoryItems() {
     try {
@@ -441,7 +428,7 @@ async function loadInventoryItems() {
         allInventoryItems = await response.json();
         inventoryItems = [...allInventoryItems];
 
-        console.log('Loaded inventory items:', inventoryItems);
+        console.log('Loaded inventory items:', inventoryItems); // Debug log
         
         if (currentSection === 'inventory') {
             displayInventoryItems();
@@ -465,6 +452,7 @@ function displayInventoryItems() {
     
     let html = '';
     inventoryItems.forEach(item => {
+        // Defensive checks for all nested properties
         const serialNumber = item.serialNumber || 'N/A';
         const productName = item.productType?.name || 'Unknown Product';
         const locations = item.warehouseLocations || [];
@@ -481,6 +469,7 @@ function displayInventoryItems() {
                 .join(' ');
         }
         
+        // Calculate total quantity safely
         const totalQuantity = locations.reduce((sum, loc) => sum + (loc.quantity || 0), 0);
         
         html += `
@@ -508,26 +497,325 @@ function displayInventoryItems() {
     tbody.innerHTML = html;
 }
 
+// NEW: Complete implementation of warehouse locations management
 async function manageItemLocations(itemId) {
     const item = inventoryItems.find(i => i.id === itemId);
-    if (!item) return;
+    if (!item) {
+        showAlert('Item not found', 'danger');
+        return;
+    }
     
-    console.log('Managing locations for:', item);
-    alert('Location management UI - see implementation details in guide');
+    currentLocationItem = item;
+    
+    try {
+        // Fetch current locations from backend
+        const response = await fetch(`${API_BASE_URL}/warehouse-inventory/item/${itemId}`);
+        if (!response.ok) throw new Error('Failed to load locations');
+        
+        const locations = await response.json();
+        
+        // Update modal with item details
+        document.getElementById('modalItemSerial').textContent = item.serialNumber;
+        document.getElementById('modalItemProduct').textContent = item.productType?.name || 'Unknown';
+        
+        const totalQty = locations.reduce((sum, loc) => sum + (loc.quantity || 0), 0);
+        document.getElementById('modalItemTotalQty').textContent = totalQty;
+        document.getElementById('modalItemLocationCount').textContent = locations.length;
+        
+        // Set hidden item IDs
+        document.getElementById('addLocationItemId').value = itemId;
+        document.getElementById('modalTransferItemId').value = itemId;
+        
+        // Display current locations
+        displayCurrentLocations(locations);
+        
+        // Populate warehouse selects
+        populateModalWarehouseSelects(locations);
+        
+        // Show the modal
+        const modal = new bootstrap.Modal(document.getElementById('locationManagementModal'));
+        modal.show();
+        
+    } catch (error) {
+        console.error('Error loading locations:', error);
+        showAlert('Failed to load warehouse locations', 'danger');
+    }
 }
 
-// Create a new Inventory Item with warehouse assignment
+function displayCurrentLocations(locations) {
+    const container = document.getElementById('currentLocationsList');
+    
+    if (!locations || locations.length === 0) {
+        container.innerHTML = '<p class="text-grey small">This item is not currently stored in any warehouse.</p>';
+        return;
+    }
+    
+    let html = '';
+    locations.forEach(location => {
+        const warehouse = location.warehouse || {};
+        const warehouseName = warehouse.name || 'Unknown Warehouse';
+        const warehouseLocation = warehouse.location || 'Unknown Location';
+        const quantity = location.quantity || 0;
+        const locationId = location.id;
+        
+        html += `
+            <div class="card bg-secondary text-light mb-2">
+                <div class="card-body p-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-4">
+                            <strong class="text-yellow">${warehouseName}</strong><br>
+                            <small class="text-grey">${warehouseLocation}</small>
+                        </div>
+                        <div class="col-md-3">
+                            <small class="text-grey">Quantity:</small><br>
+                            <span class="badge badge-yellow">${quantity}</span>
+                        </div>
+                        <div class="col-md-5 text-end">
+                            <div class="input-group input-group-sm d-inline-flex" style="width: auto;">
+                                <input type="number" class="form-control form-control-sm" 
+                                       id="qty-${locationId}" value="${quantity}" min="1" style="width: 80px;">
+                                <button class="btn btn-bat-action btn-sm" onclick="updateLocationQuantity(${locationId})">
+                                    <i class="bi bi-check"></i> Update
+                                </button>
+                            </div>
+                            <button class="btn btn-bat-danger btn-sm ms-2" onclick="removeFromLocation(${warehouse.id}, ${currentLocationItem.id}, '${warehouseName}')">
+                                <i class="bi bi-trash"></i> Remove
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+function populateModalWarehouseSelects(currentLocations) {
+    // Get warehouses that DON'T currently have this item (for adding)
+    const currentWarehouseIds = currentLocations.map(loc => loc.warehouse?.id);
+    const availableWarehouses = warehouses.filter(w => 
+        !currentWarehouseIds.includes(w.id) && w.status === 'ACTIVE'
+    );
+    
+    // Populate "Add to Warehouse" select
+    const addSelect = document.getElementById('addLocationWarehouse');
+    addSelect.innerHTML = '<option value="">Choose warehouse...</option>';
+    availableWarehouses.forEach(warehouse => {
+        const option = document.createElement('option');
+        option.value = warehouse.id;
+        option.textContent = `${warehouse.name} (Available: ${warehouse.availableCapacity || 0})`;
+        addSelect.appendChild(option);
+    });
+    
+    // Populate transfer source select (warehouses that HAVE this item)
+    const sourceSelect = document.getElementById('modalTransferSource');
+    sourceSelect.innerHTML = '<option value="">Select source...</option>';
+    currentLocations.forEach(location => {
+        const warehouse = location.warehouse;
+        const option = document.createElement('option');
+        option.value = warehouse.id;
+        option.textContent = `${warehouse.name} (Qty: ${location.quantity})`;
+        option.dataset.quantity = location.quantity;
+        sourceSelect.appendChild(option);
+    });
+    
+    // Populate transfer destination select
+    const destSelect = document.getElementById('modalTransferDestination');
+    destSelect.innerHTML = '<option value="">Select destination...</option>';
+    
+    // Update destination based on source selection
+    sourceSelect.addEventListener('change', function() {
+        const sourceId = parseInt(this.value);
+        destSelect.innerHTML = '<option value="">Select destination...</option>';
+        
+        warehouses.forEach(warehouse => {
+            if (warehouse.id !== sourceId && warehouse.status === 'ACTIVE') {
+                const option = document.createElement('option');
+                option.value = warehouse.id;
+                option.textContent = `${warehouse.name} (Available: ${warehouse.availableCapacity || 0})`;
+                destSelect.appendChild(option);
+            }
+        });
+        
+        // Set max quantity for transfer
+        const selectedOption = this.options[this.selectedIndex];
+        const maxQty = selectedOption.dataset.quantity || 0;
+        document.getElementById('modalTransferQuantity').max = maxQty;
+    });
+}
+
+async function addItemToWarehouseLocation() {
+    const itemId = parseInt(document.getElementById('addLocationItemId').value);
+    const warehouseId = parseInt(document.getElementById('addLocationWarehouse').value);
+    const quantity = parseInt(document.getElementById('addLocationQuantity').value);
+    
+    if (!warehouseId) {
+        showAlert('Please select a warehouse', 'warning');
+        return;
+    }
+    
+    const dto = {
+        inventoryItemId: itemId,
+        warehouseId: warehouseId,
+        quantity: quantity
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/warehouse-inventory`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dto)
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        
+        showAlert('Item added to warehouse successfully', 'success');
+        
+        // Reset form
+        document.getElementById('addLocationForm').reset();
+        
+        // Reload the locations in the modal
+        await manageItemLocations(itemId);
+        
+        // Reload inventory and warehouses data
+        await loadInventoryItems();
+        await loadWarehouses();
+        
+    } catch (error) {
+        console.error('Error adding item to warehouse:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+async function updateLocationQuantity(locationId) {
+    const newQuantity = parseInt(document.getElementById(`qty-${locationId}`).value);
+    
+    if (!newQuantity || newQuantity < 1) {
+        showAlert('Please enter a valid quantity', 'warning');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/warehouse-inventory/${locationId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quantity: newQuantity })
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        
+        showAlert('Quantity updated successfully', 'success');
+        
+        // Reload the locations in the modal
+        await manageItemLocations(currentLocationItem.id);
+        
+        // Reload inventory and warehouses data
+        await loadInventoryItems();
+        await loadWarehouses();
+        
+    } catch (error) {
+        console.error('Error updating quantity:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+async function removeFromLocation(warehouseId, itemId, warehouseName) {
+    if (!confirm(`Are you sure you want to remove this item from ${warehouseName}?`)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(
+            `${API_BASE_URL}/warehouse-inventory/warehouse/${warehouseId}/item/${itemId}`,
+            { method: 'DELETE' }
+        );
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        
+        showAlert('Item removed from warehouse successfully', 'success');
+        
+        // Reload the locations in the modal
+        await manageItemLocations(itemId);
+        
+        // Reload inventory and warehouses data
+        await loadInventoryItems();
+        await loadWarehouses();
+        
+    } catch (error) {
+        console.error('Error removing item from warehouse:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+async function transferFromModal() {
+    const itemId = parseInt(document.getElementById('modalTransferItemId').value);
+    const sourceWarehouseId = parseInt(document.getElementById('modalTransferSource').value);
+    const destinationWarehouseId = parseInt(document.getElementById('modalTransferDestination').value);
+    const quantity = parseInt(document.getElementById('modalTransferQuantity').value);
+    
+    if (!sourceWarehouseId || !destinationWarehouseId) {
+        showAlert('Please select both source and destination warehouses', 'warning');
+        return;
+    }
+    
+    if (sourceWarehouseId === destinationWarehouseId) {
+        showAlert('Source and destination warehouses must be different', 'warning');
+        return;
+    }
+    
+    const transferRequest = {
+        itemId: itemId,
+        sourceWarehouseId: sourceWarehouseId,
+        destinationWarehouseId: destinationWarehouseId,
+        quantity: quantity
+    };
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/warehouse-inventory/transfer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(transferRequest)
+        });
+        
+        if (!response.ok) {
+            const error = await response.text();
+            throw new Error(error);
+        }
+        
+        showAlert('Item transferred successfully', 'success');
+        
+        // Reset form
+        document.getElementById('modalTransferForm').reset();
+        
+        // Reload the locations in the modal
+        await manageItemLocations(itemId);
+        
+        // Reload inventory and warehouses data
+        await loadInventoryItems();
+        await loadWarehouses();
+        
+    } catch (error) {
+        console.error('Error transferring item:', error);
+        showAlert(error.message, 'danger');
+    }
+}
+
+// create a new Inventory Item in the database
 async function saveInventoryItem() {
     const id = document.getElementById('inventoryId').value;
-    
-    // Get serial number - can be empty for auto-generation
-    let serialNumber = document.getElementById('inventorySerial').value.trim();
-    
     const item = {
-        serialNumber: serialNumber || null, // null triggers auto-generation
-        productTypeId: parseInt(document.getElementById('inventoryProductType').value),
-        initialWarehouseId: parseInt(document.getElementById('inventoryWarehouse').value),
-        initialQuantity: parseInt(document.getElementById('inventoryQuantity').value)
+        serialNumber: document.getElementById('inventorySerial').value,
+        productTypeId: parseInt(document.getElementById('inventoryProductType').value)
     };
     
     try {
@@ -545,20 +833,12 @@ async function saveInventoryItem() {
             throw new Error(error);
         }
         
-        const createdItem = await response.json();
-        
-        // Clear form
         document.getElementById('inventoryForm').reset();
         document.getElementById('inventoryId').value = '';
         
         await loadInventoryItems();
-        await loadWarehouses(); // Reload to get updated capacities
-        
-        showAlert(
-            `Inventory item ${id ? 'updated' : 'created'} successfully` + 
-            (serialNumber ? '' : ` with auto-generated serial: ${createdItem.serialNumber}`), 
-            'success'
-        );
+        await loadWarehouses();
+        showAlert(`Inventory item ${id ? 'updated' : 'created'} successfully`, 'success');
     } catch (error) {
         console.error('Error saving inventory item:', error);
         showAlert(error.message, 'danger');
@@ -572,8 +852,6 @@ function editInventoryItem(id) {
     document.getElementById('inventoryId').value = item.id;
     document.getElementById('inventorySerial').value = item.serialNumber;
     document.getElementById('inventoryProductType').value = item.productType?.id || '';
-    
-    // Note: Can't edit warehouse/quantity in update - those require transfer
     
     document.getElementById('inventoryForm').scrollIntoView({ behavior: 'smooth' });
 }
@@ -603,8 +881,10 @@ function filterInventoryItems() {
     const warehouseFilter = document.getElementById('warehouseFilter')?.value || '';
     const productTypeFilter = document.getElementById('productTypeFilter')?.value || '';
     
+    // Start with all items
     let filtered = [...allInventoryItems];
     
+    // Apply search term (searches serial number and product name)
     if (searchTerm) {
         filtered = filtered.filter(item => {
             const serialMatch = item.serialNumber?.toLowerCase().includes(searchTerm);
@@ -613,13 +893,16 @@ function filterInventoryItems() {
         });
     }
     
+    // Apply warehouse filter
     if (warehouseFilter) {
         const warehouseId = parseInt(warehouseFilter);
         filtered = filtered.filter(item => {
+            // Check if item exists in the selected warehouse
             return item.warehouseLocations?.some(loc => loc.warehouse?.id === warehouseId);
         });
     }
     
+    // Apply product type filter
     if (productTypeFilter) {
         const productTypeId = parseInt(productTypeFilter);
         filtered = filtered.filter(item => {
@@ -627,11 +910,13 @@ function filterInventoryItems() {
         });
     }
     
+    // Update display with filtered items
     inventoryItems = filtered;
     displayInventoryItems();
 }
 
 function populateFilters() {
+    // Populate warehouse filter
     const warehouseFilter = document.getElementById('warehouseFilter');
     if (warehouseFilter) {
         warehouseFilter.innerHTML = '<option value="">All Warehouses</option>';
@@ -643,6 +928,7 @@ function populateFilters() {
         });
     }
     
+    // Populate product type filter
     const productTypeFilter = document.getElementById('productTypeFilter');
     if (productTypeFilter) {
         productTypeFilter.innerHTML = '<option value="">All Product Types</option>';
@@ -667,6 +953,7 @@ function showTransferForm(itemId) {
     const item = inventoryItems.find(i => i.id === itemId);
     if (!item) return;
     
+    // Set transfer form values
     document.getElementById('transferItemId').value = item.id;
     document.getElementById('transferItemName').textContent = `${item.productType.name} (${item.serialNumber})`;
     document.getElementById('transferCurrentWarehouse').textContent = item.warehouse.name;
@@ -675,6 +962,7 @@ function showTransferForm(itemId) {
     document.getElementById('transferQuantity').max = item.quantity;
     document.getElementById('transferQuantity').value = item.quantity;
     
+    // Populate destination warehouse dropdown (exclude current warehouse)
     const destSelect = document.getElementById('transferDestinationWarehouse');
     destSelect.innerHTML = '<option value="">Select destination warehouse...</option>';
     
@@ -687,6 +975,7 @@ function showTransferForm(itemId) {
         }
     });
     
+    // Show transfer section and scroll to it
     document.getElementById('transferSection').style.display = 'block';
     document.getElementById('transferSection').scrollIntoView({ behavior: 'smooth' });
 }
@@ -727,8 +1016,10 @@ async function transferInventoryItem() {
             throw new Error(error);
         }
         
+        // Clear form and hide section
         cancelTransfer();
         
+        // Reload data
         await loadInventoryItems();
         await loadWarehouses();
         
@@ -889,6 +1180,7 @@ function populateProductTypeSelects() {
 }
 
 function populateFilterSelects() {
+    // Populate warehouse filter
     const warehouseFilter = document.getElementById('filterWarehouse');
     if (warehouseFilter) {
         const currentValue = warehouseFilter.value;
@@ -903,7 +1195,7 @@ function populateFilterSelects() {
         
         if (currentValue) warehouseFilter.value = currentValue;
     }
-    
+    // Populate product type filter
     const productFilter = document.getElementById('filterProduct');
     if (productFilter) {
         const currentValue = productFilter.value;
