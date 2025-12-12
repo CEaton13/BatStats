@@ -8,7 +8,7 @@ let allInventoryItems = [];
 let productTypes = [];
 let locationModalInstance = null;
 let currentManagedItem = null;
-let activeTransferLocationId = null; // Track which location is being transferred
+let activeTransferLocationId = null; 
 
 // Initialize application
 document.addEventListener('DOMContentLoaded', function() {
@@ -212,6 +212,7 @@ async function performSearch() {
 
 // ==================== DASHBOARD ====================
 
+//*************************************************************************************************************** */
 async function loadDashboard() {
     try {
         await Promise.all([
@@ -306,7 +307,7 @@ function displayAlerts() {
 }
 
 // ==================== WAREHOUSES ====================
-
+/***************************************************************************************************************** */
 async function loadWarehouses() {
     try {
         const response = await fetch(`${API_BASE_URL}/warehouses`);
@@ -440,7 +441,12 @@ async function deleteWarehouse(id) {
 
 async function loadInventoryItems() {
     try {
-        const response = await fetch(`${API_BASE_URL}/inventory`);
+           const response = await fetch(`${API_BASE_URL}/inventory`, {
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -757,32 +763,90 @@ async function updateLocationQuantity(locationId) {
 }
 
 async function removeFromLocation(warehouseId, itemId) {
-    if (!confirm('Are you sure you want to remove this item from this warehouse?')) return;
+    console.log('removeFromLocation called with:', { warehouseId, itemId });
+    
+    // Validate parameters
+    if (!warehouseId || !itemId) {
+        console.error('Invalid parameters:', { warehouseId, itemId });
+        showAlert('Invalid warehouse or item ID', 'danger');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to remove this item from this warehouse?')) {
+        console.log('User cancelled removal');
+        return;
+    }
     
     try {
-        const response = await fetch(
-            `${API_BASE_URL}/warehouse-inventory/warehouse/${warehouseId}/item/${itemId}`,
-            { method: 'DELETE' }
-        );
+        const url = `${API_BASE_URL}/warehouse-inventory/warehouse/${warehouseId}/item/${itemId}`;
+        console.log('DELETE request to:', url);
+        
+        const response = await fetch(url, {
+                        method: 'DELETE',
+            headers: {
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
+            }
+        });
+        
+        console.log('Response status:', response.status);
         
         if (!response.ok) {
-            const error = await response.text();
-            throw new Error(error);
+            const errorText = await response.text();
+            console.error('Server error:', errorText);
+            throw new Error(errorText || 'Failed to remove item');
         }
         
         showAlert('Item removed from warehouse successfully', 'success');
         
-        await Promise.all([loadInventoryItems(), loadWarehouses()]);
-        
+  // Optimistically update the UI immediately
         if (currentManagedItem) {
-            const updatedItem = allInventoryItems.find(i => i.id === currentManagedItem.id);
-            if (updatedItem) {
-                currentManagedItem = updatedItem;
-                displayCurrentLocations(updatedItem);
-                populateAvailableWarehouses(updatedItem);
-                document.getElementById('modalTotalQuantity').textContent = updatedItem.totalQuantity || 0;
+            // Remove the location from the current item's warehouseLocations array
+            currentManagedItem.warehouseLocations = currentManagedItem.warehouseLocations.filter(
+                loc => loc.warehouse.id !== warehouseId
+            );
+            
+            console.log('Locations after removal:', currentManagedItem.warehouseLocations.length);
+            
+            // Check if item still has locations
+            if (currentManagedItem.warehouseLocations.length > 0) {
+                // Item still has locations, update the display immediately
+                displayCurrentLocations(currentManagedItem);
+                populateAvailableWarehouses(currentManagedItem);
+                
+                // Recalculate total quantity
+                const newTotal = currentManagedItem.warehouseLocations.reduce(
+                    (sum, loc) => sum + (loc.quantity || 0), 0
+                );
+                document.getElementById('modalTotalQuantity').textContent = newTotal;
+            } else {
+                // Item has no more locations, close modal
+                console.log('Item no longer has any locations, closing modal');
+                if (locationModalInstance) {
+                    locationModalInstance.hide();
+                }
             }
         }
+        
+        // Reload data in the background with a small delay to ensure DB commit
+        setTimeout(async () => {
+            await Promise.all([loadInventoryItems(), loadWarehouses()]);
+            
+            // Update currentManagedItem with fresh data if modal is still open
+            if (currentManagedItem && locationModalInstance._isShown) {
+                const updatedItem = allInventoryItems.find(i => i.id === currentManagedItem.id);
+                if (updatedItem) {
+                    console.log('Refreshed item data:', updatedItem);
+                    currentManagedItem = updatedItem;
+                    if (updatedItem.warehouseLocations && updatedItem.warehouseLocations.length > 0) {
+                        displayCurrentLocations(updatedItem);
+                        populateAvailableWarehouses(updatedItem);
+                        document.getElementById('modalTotalQuantity').textContent = updatedItem.totalQuantity || 0;
+                    }
+                }
+            }
+        }, 500); // 500ms delay to ensure database commit
+        
     } catch (error) {
         console.error('Error removing item from warehouse:', error);
         showAlert(error.message || 'Failed to remove item', 'danger');

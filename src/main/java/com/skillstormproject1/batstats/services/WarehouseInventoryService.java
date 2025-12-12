@@ -2,6 +2,8 @@ package com.skillstormproject1.batstats.services;
 
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import com.skillstormproject1.batstats.dtos.AddItemToWarehouseDTO;
@@ -20,6 +22,8 @@ import jakarta.transaction.Transactional;
 @Service
 @Transactional
 public class WarehouseInventoryService {
+
+    private static final Logger logger = LoggerFactory.getLogger(WarehouseInventoryService.class);
 
     private final WarehouseInventoryRepository warehouseInventoryRepository;
     private final WarehouseRepository warehouseRepository;
@@ -90,6 +94,9 @@ public class WarehouseInventoryService {
         WarehouseInventory location = new WarehouseInventory(warehouse, item, dto.getQuantity());
         WarehouseInventory saved = warehouseInventoryRepository.save(location);
         
+        logger.info("Added item {} to warehouse {} with quantity {}", 
+            item.getSerialNumber(), warehouse.getName(), dto.getQuantity());
+        
         // Database trigger automatically updates warehouse capacity
         
         return saved;
@@ -114,21 +121,46 @@ public class WarehouseInventoryService {
             }
         }
         
+        Integer oldQuantity = location.getQuantity();
         location.setQuantity(newQuantity);
-        return warehouseInventoryRepository.save(location);
+        WarehouseInventory updated = warehouseInventoryRepository.save(location);
+        
+        logger.info("Updated location {} quantity from {} to {}", 
+            locationId, oldQuantity, newQuantity);
         
         // Database trigger automatically updates warehouse capacity
+        
+        return updated;
     }
 
 
     // remove item from a warehouse location entirely 
     public void removeItemFromWarehouse(Integer warehouseId, Integer itemId) {
+        logger.info("Attempting to remove item {} from warehouse {}", itemId, warehouseId);
+        
         WarehouseInventory location = warehouseInventoryRepository
             .findByWarehouseIdAndInventoryItemId(warehouseId, itemId)
             .orElseThrow(() -> new ResourceNotFoundException(
                 "Item not found in specified warehouse"));
         
+        logger.info("Found location with id {} to delete", location.getId());
+        
+        // Delete the location
         warehouseInventoryRepository.delete(location);
+        
+        // Flush to ensure immediate database update
+        warehouseInventoryRepository.flush();
+        
+        logger.info("Successfully deleted location {} (item {} from warehouse {})", 
+            location.getId(), itemId, warehouseId);
+        
+        // Verify deletion
+        boolean stillExists = warehouseInventoryRepository.existsById(location.getId());
+        if (stillExists) {
+            logger.error("DELETION FAILED - Location {} still exists after delete!", location.getId());
+        } else {
+            logger.info("Deletion verified - Location {} no longer exists", location.getId());
+        }
         
         // Database trigger automatically updates warehouse capacity
     }
@@ -136,6 +168,9 @@ public class WarehouseInventoryService {
     // transfer quantity from one warehouse to another
     public void transferBetweenWarehouses(Integer itemId, Integer sourceWarehouseId, 
                                           Integer destinationWarehouseId, Integer quantity) {
+        logger.info("Transferring {} units of item {} from warehouse {} to warehouse {}", 
+            quantity, itemId, sourceWarehouseId, destinationWarehouseId);
+        
         // Validate source location
         WarehouseInventory sourceLocation = warehouseInventoryRepository
             .findByWarehouseIdAndInventoryItemId(sourceWarehouseId, itemId)
@@ -161,10 +196,14 @@ public class WarehouseInventoryService {
         // Update source: reduce quantity or remove
         if (sourceLocation.getQuantity().equals(quantity)) {
             // Transferring all - remove from source
+            logger.info("Transferring all {} units - removing from source", quantity);
             warehouseInventoryRepository.delete(sourceLocation);
         } else {
             // Transferring partial - reduce quantity
-            sourceLocation.setQuantity(sourceLocation.getQuantity() - quantity);
+            Integer newSourceQty = sourceLocation.getQuantity() - quantity;
+            logger.info("Transferring partial - reducing source from {} to {}", 
+                sourceLocation.getQuantity(), newSourceQty);
+            sourceLocation.setQuantity(newSourceQty);
             warehouseInventoryRepository.save(sourceLocation);
         }
         
@@ -174,17 +213,23 @@ public class WarehouseInventoryService {
             .ifPresentOrElse(
                 // Item already exists at destination - increase quantity
                 destLocation -> {
-                    destLocation.setQuantity(destLocation.getQuantity() + quantity);
+                    Integer newDestQty = destLocation.getQuantity() + quantity;
+                    logger.info("Item exists at destination - increasing from {} to {}", 
+                        destLocation.getQuantity(), newDestQty);
+                    destLocation.setQuantity(newDestQty);
                     warehouseInventoryRepository.save(destLocation);
                 },
                 // Item doesn't exist at destination - create new location
                 () -> {
+                    logger.info("Creating new location at destination with quantity {}", quantity);
                     InventoryItem item = sourceLocation.getInventoryItem();
                     WarehouseInventory newLocation = new WarehouseInventory(
                         destinationWarehouse, item, quantity);
                     warehouseInventoryRepository.save(newLocation);
                 }
             );
+        
+        logger.info("Transfer completed successfully");
         
         // Database triggers automatically update warehouse capacities
     }
